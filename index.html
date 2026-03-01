@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Agenda Villamax</title>
+
+  <!-- FullCalendar CSS e JS -->
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js'></script>
+
+  <!-- Axios per chiamate HTTP -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <style>
+    body { margin: 40px 10px; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+    #calendar { max-width: 1200px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+  <h2>Agenda Villamax</h2>
+  <div id='calendar'></div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function() {
+      const calendarEl = document.getElementById('calendar');
+
+      const calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'timeGridWeek',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'timeGridWeek,timeGridDay'
+        },
+        editable: false, // poi puoi abilitare drag & drop se vuoi
+        events: async function(fetchInfo, successCallback, failureCallback) {
+          try {
+            const res = await axios.get(
+              'https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=='
+            );
+
+            // Mappa i dati della tua tabella in eventi FullCalendar
+            const events = res.data.map(e => {
+              const startMinutes = parseInt(e.minuti);
+              const startHour = parseInt(e.ora);
+              const startDate = new Date(`${e.data}T${startHour.toString().padStart(2,'0')}:${startMinutes.toString().padStart(2,'0')}:00`);
+
+              const durationMinutes = parseInt(e.durata_minuti) || 0;
+              const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+
+              return {
+                title: e.desc_breve,
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                extendedProps: {
+                  tipo: e.tipo,
+                  descrizione: e.descrizione,
+                  appData: e.appData,
+                  id: e.id
+                }
+              };
+            });
+
+            successCallback(events);
+
+          } catch (err) {
+            console.error('Errore caricamento eventi:', err);
+            failureCallback(err);
+          }
+        }
+      });
+
+      calendar.render();
+    });
+  </script>
+</body>
+</html>
