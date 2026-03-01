@@ -2,71 +2,73 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Agenda Villamax - Versione 20260301.a</title>
+  <title>Agenda Villamax - Versione 20260301b</title>
 
-  <!-- FullCalendar CSS -->
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css" rel="stylesheet" />
+  <!-- FullCalendar v5 stabile -->
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
 
-<!-- FullCalendar JS GLOBAL -->
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
-
-  <!-- Axios per chiamate HTTP -->
+  <!-- Axios -->
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
   <style>
-    body { margin: 40px 10px; padding: 0; font-family: Arial, Helvetica, sans-serif; }
+    body { margin: 40px 10px; font-family: Arial, Helvetica, sans-serif; }
     #calendar { max-width: 1200px; margin: 0 auto; }
   </style>
 </head>
 <body>
 
-  <h2>Agenda Villamax - Versione 1a.20260301</h2>
-  <div id='calendar'></div>
+  <h2>Agenda Villamax - Versione 1.20260301b</h2>
+  <div id="calendar"></div>
 
   <script>
-    document.addEventListener('DOMContentLoaded', async function() {
+    document.addEventListener('DOMContentLoaded', function () {
+
+      if (typeof FullCalendar === 'undefined') {
+        alert("FullCalendar NON è stato caricato!");
+        return;
+      }
+
       const calendarEl = document.getElementById('calendar');
 
-      const calendar = new Calendar(calendarEl, {
+      const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'timeGridWeek',
         headerToolbar: {
           left: 'prev,next today',
           center: 'title',
           right: 'timeGridWeek,timeGridDay'
         },
-        editable: false, // poi puoi abilitare drag & drop se vuoi
+        editable: false,
         events: async function(fetchInfo, successCallback, failureCallback) {
           try {
+
             const res = await axios.get(
               'https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=='
             );
 
-            // Mappa i dati della tua tabella in eventi FullCalendar
             const events = res.data.map(e => {
-              const startMinutes = parseInt(e.minuti);
-              const startHour = parseInt(e.ora);
-              const startDate = new Date(`${e.data}T${startHour.toString().padStart(2,'0')}:${startMinutes.toString().padStart(2,'0')}:00`);
 
-              const durationMinutes = parseInt(e.durata_minuti) || 0;
+              const startHour = parseInt(e.ora || 0);
+              const startMinutes = parseInt(e.minuti || 0);
+
+              const startDate = new Date(
+                `${e.data}T${startHour.toString().padStart(2,'0')}:${startMinutes.toString().padStart(2,'0')}:00`
+              );
+
+              const durationMinutes = parseInt(e.durata_minuti || 0);
               const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
 
               return {
-                title: e.desc_breve,
-                start: startDate.toISOString(),
-                end: endDate.toISOString(),
-                extendedProps: {
-                  tipo: e.tipo,
-                  descrizione: e.descrizione,
-                  appData: e.appData,
-                  id: e.id
-                }
+                title: e.desc_breve || 'Evento',
+                start: startDate,
+                end: endDate
               };
             });
 
             successCallback(events);
 
           } catch (err) {
-            console.error('Errore caricamento eventi:', err);
+            console.error("Errore caricamento eventi:", err);
             failureCallback(err);
           }
         }
@@ -75,9 +77,6 @@
       calendar.render();
     });
   </script>
+
 </body>
-
 </html>
-
-
-
