@@ -48,22 +48,41 @@
 
             const events = res.data.map(e => {
 
-              const startHour = parseInt(e.ora || 0);
-              const startMinutes = parseInt(e.minuti || 0);
-
-              const startDate = new Date(
-                `${e.data}T${startHour.toString().padStart(2,'0')}:${startMinutes.toString().padStart(2,'0')}:00`
-              );
-
-              const durationMinutes = parseInt(e.durata_minuti || 0);
-              const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-
-              return {
-                title: e.desc_breve || 'Evento',
-                start: startDate,
-                end: endDate
-              };
-            });
+                const dataString = e.data.toString();
+                
+                const year = dataString.substring(0,4);
+                const month = dataString.substring(4,6);
+                const day = dataString.substring(6,8);
+                
+                const hour = parseInt(e.ora || 0);
+                const minute = parseInt(e.minuti || 0);
+                
+                const startDate = new Date(
+                  year,
+                  parseInt(month) - 1,   // JS months partono da 0
+                  day,
+                  hour,
+                  minute
+                );
+                
+                let endDate = null;
+                
+                const durationMinutes =
+                  (parseInt(e.durata_ore || 0) * 60) +
+                  parseInt(e.durata_minuti || 0);
+                
+                if (durationMinutes > 0) {
+                  endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+                }
+                
+                return {
+                  title: e.desc_breve || "Evento",
+                  start: startDate,
+                  end: endDate,
+                  allDay: hour === 0 && minute === 0
+                };
+                });
+                  
 
             successCallback(events);
 
@@ -80,3 +99,4 @@
 
 </body>
 </html>
+
