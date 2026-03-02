@@ -1,103 +1,191 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>Agenda Villamax - Versione 20260301c</title>
+<meta charset="utf-8" />
+<title>Agenda Villamax</title>
 
-  <!-- FullCalendar v5 stabile -->
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 
-  <!-- Axios -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background-color: #f1f3f4;
+}
 
-  <style>
-    body { margin: 40px 10px; font-family: Arial, Helvetica, sans-serif; }
-    #calendar { max-width: 1200px; margin: 0 auto; }
-  </style>
+h2 {
+  padding: 20px;
+  margin: 0;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 500;
+}
+
+#calendar {
+  max-width: 1400px;
+  margin: 30px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+
+/* Toolbar */
+.fc-toolbar-title {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.fc-button {
+  background: #ffffff !important;
+  border: 1px solid #dadce0 !important;
+  color: #3c4043 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+.fc-button-primary:not(:disabled).fc-button-active {
+  background: #1a73e8 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.fc-button:hover {
+  background: #f1f3f4 !important;
+}
+
+/* Today column */
+.fc-day-today {
+  background-color: #e8f0fe !important;
+}
+
+/* Event style */
+.fc-event {
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 4px 6px !important;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Time column smaller */
+.fc-timegrid-slot-label {
+  font-size: 11px;
+}
+
+/* All-day section */
+.fc-daygrid-event {
+  border-radius: 8px !important;
+}
+
+/* Hide ugly borders */
+.fc-scrollgrid, .fc-scrollgrid table {
+  border: none !important;
+}
+</style>
 </head>
+
 <body>
 
-  <h2>Agenda Villamax - Versione 1.20260301c</h2>
-  <div id="calendar"></div>
+<h2>Agenda Villamax</h2>
+<div id="calendar"></div>
 
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
-      if (typeof FullCalendar === 'undefined') {
-        alert("FullCalendar NON è stato caricato!");
-        return;
-      }
+  const calendarEl = document.getElementById('calendar');
 
-      const calendarEl = document.getElementById('calendar');
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'timeGridWeek',
+    locale: 'it',
+    firstDay: 1,
+    height: "auto",
+    nowIndicator: true,
+    slotMinTime: "07:00:00",
+    slotMaxTime: "21:00:00",
 
-      const calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'timeGridWeek',
-        headerToolbar: {
-          left: 'prev,next today',
-          center: 'title',
-          right: 'timeGridWeek,timeGridDay'
-        },
-        editable: false,
-        events: async function(fetchInfo, successCallback, failureCallback) {
-          try {
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
 
-            const res = await axios.get(
-              'https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=='
-            );
+    buttonText: {
+      today: 'Oggi',
+      month: 'Mese',
+      week: 'Settimana',
+      day: 'Giorno'
+    },
 
-            const events = res.data.map(e => {
+    events: async function(fetchInfo, successCallback, failureCallback) {
+      try {
 
-                const dataString = e.data.toString();
-                
-                const year = dataString.substring(0,4);
-                const month = dataString.substring(4,6);
-                const day = dataString.substring(6,8);
-                
-                const hour = parseInt(e.ora || 0);
-                const minute = parseInt(e.minuti || 0);
-                
-                const startDate = new Date(
-                  year,
-                  parseInt(month) - 1,   // JS months partono da 0
-                  day,
-                  hour,
-                  minute
-                );
-                
-                let endDate = null;
-                
-                const durationMinutes =
-                  (parseInt(e.durata_ore || 0) * 60) +
-                  parseInt(e.durata_minuti || 0);
-                
-                if (durationMinutes > 0) {
-                  endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-                }
-                
-                return {
-                  title: e.desc_breve || "Evento",
-                  start: startDate,
-                  end: endDate,
-                  allDay: hour === 0 && minute === 0
-                };
-                });
-                  
+        const res = await axios.get(
+          'https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=='
+        );
 
-            successCallback(events);
+        const events = res.data.map(e => {
 
-          } catch (err) {
-            console.error("Errore caricamento eventi:", err);
-            failureCallback(err);
+          const dataString = e.data.toString();
+          const year = dataString.substring(0,4);
+          const month = dataString.substring(4,6);
+          const day = dataString.substring(6,8);
+
+          const hour = parseInt(e.ora || 0);
+          const minute = parseInt(e.minuti || 0);
+
+          const startDate = new Date(year, parseInt(month)-1, day, hour, minute);
+
+          const durationMinutes =
+            (parseInt(e.durata_ore || 0) * 60) +
+            parseInt(e.durata_minuti || 0);
+
+          let endDate = null;
+          if (durationMinutes > 0) {
+            endDate = new Date(startDate.getTime() + durationMinutes * 60000);
           }
-        }
-      });
 
-      calendar.render();
-    });
-  </script>
+          // 🎨 Colori soft stile Google
+          let backgroundColor = "#4285F4"; // default blu
+
+          if (e.tipo === "S") backgroundColor = "#34A853";   // verde
+          if (e.tipo === "P") backgroundColor = "#EA4335";   // rosso
+          if (e.tipo === "C") backgroundColor = "#4285F4";   // blu
+
+          return {
+            title: e.desc_breve || "Evento",
+            start: startDate,
+            end: endDate,
+            allDay: hour === 0 && minute === 0,
+            backgroundColor: backgroundColor,
+            extendedProps: {
+              descrizione: e.descrizione
+            }
+          };
+        });
+
+        successCallback(events);
+
+      } catch (err) {
+        console.error("Errore caricamento eventi:", err);
+        failureCallback(err);
+      }
+    },
+
+    eventDidMount: function(info) {
+      if (info.event.extendedProps.descrizione) {
+        info.el.title = info.event.extendedProps.descrizione;
+      }
+    }
+
+  });
+
+  calendar.render();
+});
+</script>
 
 </body>
 </html>
-
-
