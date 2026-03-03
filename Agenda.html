@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Agenda Villamax</title>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background-color: #f1f3f4;
+}
+
+h2 {
+  padding: 20px;
+  margin: 0;
+  background: white;
+  border-bottom: 1px solid #e0e0e0;
+  font-weight: 500;
+}
+
+#calendar {
+  max-width: 1400px;
+  margin: 30px auto;
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+
+.fc-toolbar-title {
+  font-size: 22px;
+  font-weight: 500;
+}
+
+.fc-button {
+  background: #ffffff !important;
+  border: 1px solid #dadce0 !important;
+  color: #3c4043 !important;
+  border-radius: 6px !important;
+}
+
+.fc-button-primary:not(:disabled).fc-button-active {
+  background: #1a73e8 !important;
+  color: white !important;
+  border: none !important;
+}
+
+.fc-day-today {
+  background-color: #e8f0fe !important;
+}
+
+.fc-event {
+  border: none !important;
+  border-radius: 8px !important;
+  padding: 4px 6px !important;
+  font-size: 13px;
+  font-weight: 500;
+}
+</style>
+</head>
+
+<body>
+
+<h2>Agenda Villamax</h2>
+<div id="calendar"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+  const API_BASE = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api";
+  const API_KEY = "I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+  const calendarEl = document.getElementById('calendar');
+
+  const calendar = new FullCalendar.Calendar(calendarEl, {
+    initialView: 'dayGridMonth',
+    locale: 'it',
+    firstDay: 1,
+    selectable: true,
+    editable: false,
+    height: "auto",
+
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+
+    events: loadEvents,
+
+    // 🔥 CLICK SU GIORNO → INSERT
+    dateClick: async function(info) {
+
+      const titolo = prompt("Titolo evento:");
+      if (!titolo) return;
+
+      const tipo = prompt("Tipo (P/B/M):", "P");
+
+      const payload = {
+        data: formatDateToInt(info.date),
+        ora: 0,
+        minuti: 0,
+        tipo: tipo,
+        durata_ore: 0,
+        durata_minuti: 0,
+        desc_breve: titolo,
+        descrizione: ""
+      };
+
+      await axios.post(`${API_BASE}/InsertEvent?code=${API_KEY}`, payload);
+
+      calendar.refetchEvents();
+    },
+
+    // 🔥 CLICK SU EVENTO → UPDATE / DELETE
+    eventClick: async function(info) {
+
+      const scelta = prompt(
+        "Scrivi:\n1 = Modifica titolo\n2 = Elimina evento"
+      );
+
+      if (scelta === "1") {
+
+        const nuovoTitolo = prompt("Nuovo titolo:", info.event.title);
+        if (!nuovoTitolo) return;
+
+        const payload = {
+          id: info.event.extendedProps.id,
+          desc_breve: nuovoTitolo
+        };
+
+        await axios.put(`${API_BASE}/UpdateEvent?code=${API_KEY}`, payload);
+
+        calendar.refetchEvents();
+      }
+
+      if (scelta === "2") {
+
+        if (!confirm("Confermi eliminazione?")) return;
+
+        await axios.delete(`${API_BASE}/DeleteEvent?code=${API_KEY}`, {
+          data: { id: info.event.extendedProps.id }
+        });
+
+        calendar.refetchEvents();
+      }
+    }
+
+  });
+
+  calendar.render();
+
+  // ==========================
+  // LOAD EVENTS
+  // ==========================
+  async function loadEvents(fetchInfo, successCallback, failureCallback) {
+
+    try {
+
+      const res = await axios.get(
+        `${API_BASE}/GetEvents?code=${API_KEY}`
+      );
+
+      const today = new Date();
+      today.setHours(0,0,0,0);
+
+      const events = res.data.map(e => {
+
+        const dateStr = e.data.toString();
+        const year = dateStr.substring(0,4);
+        const month = dateStr.substring(4,6);
+        const day = dateStr.substring(6,8);
+
+        const hour = parseInt(e.ora || 0);
+        const minute = parseInt(e.minuti || 0);
+
+        const startDate = new Date(year, month-1, day, hour, minute);
+
+        let color = "#4285F4"; // default
+
+        if (e.tipo === "P") color = "#EA4335";   // Rosso
+        if (e.tipo === "S") color = "#34A853";   // Verde
+        if (e.tipo === "M") color = "#8AB4F8";   // Azzurro chiaro
+        if (e.tipo === "C") color = "#FDD663";   // Giallo chiaro
+        if (e.tipo === "A") color = "#137333";   // Verde scuro
+        if (e.tipo === "L") color = "#FB8C00";   // Arancione
+        
+        if (startDate < today) color = "#9aa0a6";
+
+        return {
+          title: e.desc_breve,
+          start: startDate,
+          backgroundColor: color,
+          borderColor: color,
+          textColor: "#fff",
+          extendedProps: {
+            id: e.id
+          }
+        };
+      });
+
+      successCallback(events);
+
+    } catch (err) {
+      console.error(err);
+      failureCallback(err);
+    }
+  }
+
+  function formatDateToInt(date) {
+    const year = date.getFullYear();
+    const month = (date.getMonth()+1).toString().padStart(2,'0');
+    const day = date.getDate().toString().padStart(2,'0');
+    return parseInt(`${year}${month}${day}`);
+  }
+
+});
+</script>
+
+</body>
+</html>
+
