@@ -93,20 +93,21 @@ fetch(apiUrl)
 
         data.forEach(item => {
 
-            const row = document.createElement("tr");
+    const row = document.createElement("tr");
 
-            const dataFormattata = new Date(item.idata).toLocaleDateString("it-IT");
+    const dataFormattata = new Date(item.appData)
+        .toLocaleDateString("it-IT");
 
-            row.innerHTML = `
-                <td>${dataFormattata}</td>
-                <td>${item.causale ?? ""}</td>
-                <td class="entrata">${item.entrata ?? ""}</td>
-                <td class="uscita">${item.uscita ?? ""}</td>
-                <td>${item.importoEUR ?? ""}</td>
-            `;
+    row.innerHTML = `
+        <td>${dataFormattata}</td>
+        <td>${item.desc_breve ?? ""}</td>
+        <td class="entrata">${item.entrata ?? ""}</td>
+        <td class="uscita">${item.uscita ?? ""}</td>
+        <td>${item.tipo ?? ""}</td>
+    `;
 
-            tbody.appendChild(row);
-        });
+    tbody.appendChild(row);
+});
     })
     .catch(error => {
         document.getElementById("loading").innerText = "Errore caricamento dati.";
