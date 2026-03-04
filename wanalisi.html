@@ -7,6 +7,7 @@
     body {
         font-family: Arial, Helvetica, sans-serif;
         margin: 20px;
+        background-color: #f8f9fa;
     }
 
     h2 {
@@ -18,12 +19,15 @@
         width: 100%;
         border-collapse: collapse;
         margin-top: 20px;
+        background-color: white;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
 
     th, td {
         border: 1px solid #aaa;
         padding: 8px;
         text-align: left;
+        font-size: 0.95rem;
     }
 
     th {
@@ -47,7 +51,6 @@
         font-weight: bold;
         margin-top: 40px;
     }
-
 </style>
 </head>
 
@@ -68,7 +71,6 @@ const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azur
 fetch(apiUrl)
 .then(response => response.json())
 .then(data => {
-
     console.log("RISPOSTA COMPLETA:", data);
 
     const table = document.getElementById("wanalisTable");
@@ -100,7 +102,21 @@ fetch(apiUrl)
         columns.forEach(col => {
             const td = document.createElement("td");
             let value = item[col];
-            if (value === null || value === undefined) value = "";
+
+            if (value === null || value === undefined) {
+                value = "";
+            }
+
+            // ✅ Colorazione per numeri
+            if(["uscita","entrata","Importo EUR"].includes(col)) {
+                const num = parseFloat(value);
+                if (!isNaN(num)) {
+                    if(num > 0) td.style.color = "green";
+                    else if(num < 0) td.style.color = "red";
+                    else td.style.color = "black";
+                }
+            }
+
             td.innerText = value;
             row.appendChild(td);
         });
