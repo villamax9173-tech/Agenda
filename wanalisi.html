@@ -2,69 +2,16 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wanalisi</title>
-
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f5f7fa;
-    margin: 0;
-    padding: 20px;
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-thead {
-    background-color: #1f2937;
-    color: white;
-}
-
-th, td {
-    padding: 10px;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-tr:hover {
-    background-color: #f3f4f6;
-}
-
-.entrata {
-    color: green;
-    font-weight: bold;
-}
-
-.uscita {
-    color: red;
-    font-weight: bold;
-}
-
-.loading {
-    text-align: center;
-    margin-top: 40px;
-    font-size: 18px;
-}
-</style>
 </head>
 
 <body>
 
-<h1>Wanalisi</h1>
+<h2>Wanalisi</h2>
 
-<div id="loading" class="loading">Caricamento dati...</div>
+<div id="loading">Caricamento dati...</div>
 
-<table id="wanalisTable" style="display:none;">
+<table border="1" cellpadding="6" cellspacing="0" id="wanalisTable" style="display:none;">
     <thead>
         <tr>
             <th>Data</th>
@@ -78,41 +25,58 @@ tr:hover {
 </table>
 
 <script>
+
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
+// converte yyyy/MM/dd in oggetto Date sicuro
+function parseDataYYYYMMDD(str) {
+    if (!str) return null;
+    const parts = str.split("/");
+    return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 fetch(apiUrl)
-    .then(response => response.json())
-    .then(data => {
+.then(response => response.json())
+.then(data => {
 
-        const table = document.getElementById("wanalisTable");
-        const tbody = table.querySelector("tbody");
-        const loading = document.getElementById("loading");
+    console.log("DATI:", data);
 
-        loading.style.display = "none";
-        table.style.display = "table";
+    const table = document.getElementById("wanalisTable");
+    const tbody = table.querySelector("tbody");
+    const loading = document.getElementById("loading");
 
-        data.forEach(item => {
+    loading.style.display = "none";
+    table.style.display = "table";
 
-    const row = document.createElement("tr");
+    data.forEach(item => {
 
-    const dataFormattata = new Date(item.appData)
-        .toLocaleDateString("it-IT");
+        const row = document.createElement("tr");
 
-    row.innerHTML = `
-        <td>${dataFormattata}</td>
-        <td>${item.desc_breve ?? ""}</td>
-        <td class="entrata">${item.entrata ?? ""}</td>
-        <td class="uscita">${item.uscita ?? ""}</td>
-        <td>${item.tipo ?? ""}</td>
-    `;
+        let dataFormattata = "";
 
-    tbody.appendChild(row);
-});
-    })
-    .catch(error => {
-        document.getElementById("loading").innerText = "Errore caricamento dati.";
-        console.error("Errore:", error);
+        if (item.idata) {
+            const dataObj = parseDataYYYYMMDD(item.idata);
+            if (dataObj)
+                dataFormattata = dataObj.toLocaleDateString("it-IT");
+        }
+
+        row.innerHTML = `
+            <td>${dataFormattata}</td>
+            <td>${item.causale || ""}</td>
+            <td>${item.entrata || ""}</td>
+            <td>${item.uscita || ""}</td>
+            <td>${item.importoEUR || ""}</td>
+        `;
+
+        tbody.appendChild(row);
     });
+
+})
+.catch(error => {
+    console.error("Errore:", error);
+    document.getElementById("loading").innerText = "Errore caricamento dati.";
+});
+
 </script>
 
 </body>
