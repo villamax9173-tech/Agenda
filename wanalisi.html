@@ -2,81 +2,118 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Wanalisi</title>
+<title>Wanalisi - Agenda Villamax</title>
+<style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 20px;
+    }
+
+    h2 {
+        text-align: center;
+        color: #333;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+    th, td {
+        border: 1px solid #aaa;
+        padding: 8px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #4CAF50;
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+
+    tbody tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    tbody tr:hover {
+        background-color: #ddd;
+    }
+
+    #loading {
+        text-align: center;
+        font-weight: bold;
+        margin-top: 40px;
+    }
+
+</style>
 </head>
 
 <body>
 
-<h2>Wanalisi</h2>
+<h2>Wanalisi - Dati Completi</h2>
 
 <div id="loading">Caricamento dati...</div>
 
-<table border="1" cellpadding="6" cellspacing="0" id="wanalisTable" style="display:none;">
-    <thead>
-        <tr>
-            <th>Data</th>
-            <th>Causale</th>
-            <th>Entrata</th>
-            <th>Uscita</th>
-            <th>Importo EUR</th>
-        </tr>
-    </thead>
+<table id="wanalisTable" style="display:none;">
+    <thead></thead>
     <tbody></tbody>
 </table>
 
 <script>
-
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
-
-// converte yyyy/MM/dd in oggetto Date sicuro
-function parseDataYYYYMMDD(str) {
-    if (!str) return null;
-    const parts = str.split("/");
-    return new Date(parts[0], parts[1] - 1, parts[2]);
-}
 
 fetch(apiUrl)
 .then(response => response.json())
 .then(data => {
 
-    console.log("DATI:", data);
+    console.log("RISPOSTA COMPLETA:", data);
 
     const table = document.getElementById("wanalisTable");
+    const thead = table.querySelector("thead");
     const tbody = table.querySelector("tbody");
     const loading = document.getElementById("loading");
 
     loading.style.display = "none";
-    table.style.display = "table";
 
+    if (!data || data.length === 0) {
+        loading.innerText = "Nessun dato trovato.";
+        return;
+    }
+
+    // 🔹 Header dinamico
+    const headerRow = document.createElement("tr");
+    const columns = Object.keys(data[0]);
+
+    columns.forEach(col => {
+        const th = document.createElement("th");
+        th.innerText = col;
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+
+    // 🔹 Righe dinamiche
     data.forEach(item => {
-
         const row = document.createElement("tr");
-
-        let dataFormattata = "";
-
-        if (item.idata) {
-            const dataObj = parseDataYYYYMMDD(item.idata);
-            if (dataObj)
-                dataFormattata = dataObj.toLocaleDateString("it-IT");
-        }
-
-        row.innerHTML = `
-            <td>${dataFormattata}</td>
-            <td>${item.causale || ""}</td>
-            <td>${item.entrata || ""}</td>
-            <td>${item.uscita || ""}</td>
-            <td>${item.importoEUR || ""}</td>
-        `;
-
+        columns.forEach(col => {
+            const td = document.createElement("td");
+            let value = item[col];
+            if (value === null || value === undefined) value = "";
+            td.innerText = value;
+            row.appendChild(td);
+        });
         tbody.appendChild(row);
     });
+
+    table.style.display = "table";
 
 })
 .catch(error => {
     console.error("Errore:", error);
     document.getElementById("loading").innerText = "Errore caricamento dati.";
 });
-
 </script>
 
 </body>
