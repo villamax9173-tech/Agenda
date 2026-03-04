@@ -11,49 +11,48 @@ body {
     background-color: #f4f6f8;
 }
 
-h2 { text-align: center; }
+h2 { text-align:center; }
 
 .totali {
-    display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
-    font-size: 1.1rem;
-    font-weight: bold;
+    display:flex;
+    justify-content:space-around;
+    margin-bottom:20px;
+    font-weight:bold;
 }
 
 .totale-box {
-    padding: 10px 20px;
-    background: white;
-    border-radius: 6px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    background:white;
+    padding:10px 20px;
+    border-radius:6px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+    box-shadow:0 2px 8px rgba(0,0,0,0.1);
 }
 
 th, td {
-    border: 1px solid #ccc;
-    padding: 8px;
-    font-size: 0.9rem;
+    border:1px solid #ccc;
+    padding:8px;
+    font-size:0.9rem;
 }
 
 th {
-    background-color: #2c7be5;
-    color: white;
+    background:#2c7be5;
+    color:white;
 }
 
-tbody tr:nth-child(even) { background-color: #f2f2f2; }
-tbody tr:hover { background-color: #e6f0ff; }
+tbody tr:nth-child(even){ background:#f2f2f2; }
+tbody tr:hover{ background:#e6f0ff; }
 
-.numero-positivo { color: green; font-weight: bold; }
-.numero-negativo { color: red; font-weight: bold; }
-.numero-zero { color: black; }
+.numero-positivo{ color:green; font-weight:bold; }
+.numero-negativo{ color:red; font-weight:bold; }
+.numero-zero{ color:black; }
 
-#loading { text-align: center; margin-top: 40px; font-weight: bold; }
+#loading{ text-align:center; margin-top:40px; font-weight:bold; }
 </style>
 </head>
 
@@ -91,6 +90,8 @@ fetch(apiUrl)
 .then(res => res.json())
 .then(data => {
 
+    console.log("JSON:", data);
+
     const loading = document.getElementById("loading");
     const table = document.getElementById("wanalisTable");
     const tbody = table.querySelector("tbody");
@@ -107,7 +108,7 @@ fetch(apiUrl)
 
     data.forEach(item => {
 
-        const dateKey = item.idata;
+        const dateKey = normalizzaDataKey(item.idata);
 
         if (!grouped[dateKey]) {
             grouped[dateKey] = {
@@ -128,8 +129,11 @@ fetch(apiUrl)
         grouped[dateKey].uscita += uscita;
         grouped[dateKey].importo += importo;
 
-        if (item.descEntrata) grouped[dateKey].descEntrata.push(item.descEntrata);
-        if (item.descUscita) grouped[dateKey].descUscita.push(item.descUscita);
+        if (item.descEntrata)
+            grouped[dateKey].descEntrata.push(item.descEntrata);
+
+        if (item.descUscita)
+            grouped[dateKey].descUscita.push(item.descUscita);
     });
 
     let totaleEntrate = 0;
@@ -137,7 +141,7 @@ fetch(apiUrl)
     let totaleImporto = 0;
 
     Object.values(grouped)
-        .sort((a,b) => new Date(a.idata) - new Date(b.idata))
+        .sort((a,b)=> a.idata.localeCompare(b.idata))
         .forEach(g => {
 
         totaleEntrate += g.entrata;
@@ -147,12 +151,12 @@ fetch(apiUrl)
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            <td>${new Date(g.idata).toLocaleDateString("it-IT")}</td>
+            <td>${formatDataVisuale(g.idata)}</td>
             <td>${g.descEntrata.join("<br>")}</td>
-            <td class="${getClasseNumero(g.entrata)}">${g.entrata.toFixed(2)}</td>
+            <td class="${classeNumero(g.entrata)}">${g.entrata.toFixed(2)}</td>
             <td>${g.descUscita.join("<br>")}</td>
-            <td class="${getClasseNumero(g.uscita)}">${g.uscita.toFixed(2)}</td>
-            <td class="${getClasseNumero(g.importo)}">${g.importo.toFixed(2)}</td>
+            <td class="${classeNumero(g.uscita)}">${g.uscita.toFixed(2)}</td>
+            <td class="${classeNumero(g.importo)}">${g.importo.toFixed(2)}</td>
         `;
 
         tbody.appendChild(row);
@@ -166,9 +170,43 @@ fetch(apiUrl)
 
 });
 
-function getClasseNumero(num) {
-    if (num > 0) return "numero-positivo";
-    if (num < 0) return "numero-negativo";
+
+// 🧠 Normalizza data per chiave interna (yyyyMMdd)
+function normalizzaDataKey(value) {
+
+    if (!value) return "";
+
+    const str = value.toString();
+
+    // Caso 20260304
+    if (str.length === 8 && !str.includes("-"))
+        return str;
+
+    // Caso ISO
+    const d = new Date(str);
+    if (!isNaN(d)) {
+        return d.getFullYear().toString()
+            + (d.getMonth()+1).toString().padStart(2,'0')
+            + d.getDate().toString().padStart(2,'0');
+    }
+
+    return str;
+}
+
+// 🧾 Data visuale dd/MM/yyyy
+function formatDataVisuale(key) {
+
+    if (!key || key.length !== 8) return key;
+
+    return key.substring(6,8) + "/"
+        + key.substring(4,6) + "/"
+        + key.substring(0,4);
+}
+
+// 🎨 Colore numeri
+function classeNumero(num){
+    if(num > 0) return "numero-positivo";
+    if(num < 0) return "numero-negativo";
     return "numero-zero";
 }
 
