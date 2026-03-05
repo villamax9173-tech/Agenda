@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
 <meta charset="UTF-8">
 <title>Wanalisi</title>
@@ -54,6 +55,7 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 </style>
 </head>
 
+
 <body>
 
 <h2>Wanalisi</h2>
@@ -64,7 +66,7 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 <div class="box">Tot Importo EUR: <span id="totImporto">0</span></div>
 </div>
 
-<table id="tabella">
+<table>
 <thead>
 <tr>
 <th>Data</th>
@@ -76,8 +78,10 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 <th>DescEntrata</th>
 </tr>
 </thead>
-<tbody></tbody>
+
+<tbody id="tabella"></tbody>
 </table>
+
 
 <script>
 
@@ -87,7 +91,7 @@ fetch(apiUrl)
 .then(r=>r.json())
 .then(data=>{
 
-const tbody=document.querySelector("#tabella tbody")
+const tabella=document.getElementById("tabella")
 
 let totEntrate=0
 let totUscite=0
@@ -96,19 +100,19 @@ let totImporto=0
 const visteEntrate=new Set()
 const visteUscite=new Set()
 
-data.sort((a,b)=> new Date(a.idata)-new Date(b.idata))
+data.sort((a,b)=> new Date(a.Idata)-new Date(b.Idata))
 
 data.forEach(r=>{
 
-const dataObj=new Date(r.idata)
+const dataObj=new Date(r.Idata)
 const dataVal=dataObj.toLocaleDateString("it-IT")
 
-const uscita=Number(r.uscita||0)
-const entrata=Number(r.entrata||0)
-const importo=Number(r.importoEUR||0)
+const uscita=Number(r.Uscita||0)
+const entrata=Number(r.Entrata||0)
+const importo=Number(r.ImportoEUR||0)
 
-const descU=r.descUscita||""
-const descE=r.descEntrata||""
+const descU=r.DescUscita||""
+const descE=r.DescEntrata||""
 
 const keyU=dataVal+"-"+descU
 const keyE=dataVal+"-"+descE
@@ -118,13 +122,13 @@ let descUPrint=""
 let entrataPrint=""
 let descEPrint=""
 
-if(descU && !visteUscite.has(keyU)){
+if(descU && descU!=="-" && !visteUscite.has(keyU)){
 uscitaPrint=uscita
 descUPrint=descU
 visteUscite.add(keyU)
 }
 
-if(descE && !visteEntrate.has(keyE)){
+if(descE && descE!=="-" && !visteEntrate.has(keyE)){
 entrataPrint=entrata
 descEPrint=descE
 visteEntrate.add(keyE)
@@ -138,15 +142,15 @@ const tr=document.createElement("tr")
 
 tr.innerHTML=`
 <td>${dataVal}</td>
-<td class="${classe(uscitaPrint)}">${formatNum(uscitaPrint)}</td>
+<td class="${classe(uscitaPrint)}">${formatta(uscitaPrint)}</td>
 <td>${descUPrint}</td>
-<td>${r.causale||""}</td>
-<td class="${classe(importo)}">${formatNum(importo)}</td>
-<td class="${classe(entrataPrint)}">${formatNum(entrataPrint)}</td>
+<td>${r.Causale||""}</td>
+<td class="${classe(importo)}">${formatta(importo)}</td>
+<td class="${classe(entrataPrint)}">${formatta(entrataPrint)}</td>
 <td>${descEPrint}</td>
 `
 
-tbody.appendChild(tr)
+tabella.appendChild(tr)
 
 })
 
@@ -156,14 +160,14 @@ document.getElementById("totImporto").innerText=totImporto.toFixed(2)
 
 })
 
-function formatNum(v){
-if(v===""||v===0) return ""
+function formatta(v){
+if(v===0 || v==="") return ""
 return Number(v).toFixed(2)
 }
 
-function classe(n){
-if(n>0) return "numero-positivo"
-if(n<0) return "numero-negativo"
+function classe(v){
+if(v>0) return "numero-positivo"
+if(v<0) return "numero-negativo"
 return "numero-zero"
 }
 
