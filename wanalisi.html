@@ -118,6 +118,17 @@ padding:5px;
 padding:8px 12px;
 }
 
+/* NUOVE CLASSI */
+.weekend{
+background:#fff3cd;
+font-weight:bold;
+}
+
+.oggi{
+background:#cce5ff;
+font-weight:bold;
+}
+
 </style>
 </head>
 
@@ -200,7 +211,12 @@ function formatData(d){
 
 const date=new Date(d)
 
-return date.toLocaleDateString("it-IT")
+return date.toLocaleDateString("it-IT",{
+weekday:"short",
+day:"2-digit",
+month:"2-digit",
+year:"numeric"
+})
 
 }
 
@@ -233,8 +249,19 @@ dati.forEach((r,i)=>{
 const tr=document.createElement("tr")
 
 const data=new Date(r.Idata)
+data.setHours(0,0,0,0)
 
+/* evidenzia passato */
 if(data<oggi) tr.classList.add("passato")
+
+/* evidenzia oggi */
+if(data.getTime()===oggi.getTime()) tr.classList.add("oggi")
+
+/* evidenzia weekend */
+const giorno=data.getDay()
+if(giorno===0 || giorno===6){
+tr.classList.add("weekend")
+}
 
 let importo=r.ImportoEUR ?? 0
 
@@ -335,7 +362,7 @@ datasets:[{
 label:"Uscite",
 data:valori
 }]
-},
+}, 
 
 options:{
 plugins:{
