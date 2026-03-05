@@ -9,7 +9,7 @@
 body{
 font-family:Arial;
 margin:20px;
-background:#f5f6f8;
+background:#f4f6f9;
 }
 
 h2{
@@ -33,19 +33,9 @@ background:#2c7be5;
 color:white;
 }
 
-.numero-positivo{
-color:green;
-font-weight:bold;
-}
-
-.numero-negativo{
-color:red;
-font-weight:bold;
-}
-
-.numero-zero{
-color:black;
-}
+.numero-positivo{color:green;font-weight:bold;}
+.numero-negativo{color:red;font-weight:bold;}
+.numero-zero{color:black;}
 
 .totali{
 display:flex;
@@ -106,14 +96,16 @@ let totImporto=0
 const visteEntrate=new Set()
 const visteUscite=new Set()
 
-data
-.sort((a,b)=>a.idata.localeCompare(b.idata))
-.forEach(r=>{
+data.sort((a,b)=> new Date(a.idata)-new Date(b.idata))
 
-const dataVal=r.idata
-const uscita=parseFloat(r.uscita||0)
-const entrata=parseFloat(r.entrata||0)
-const importo=parseFloat(r.importoEUR||0)
+data.forEach(r=>{
+
+const dataObj=new Date(r.idata)
+const dataVal=dataObj.toLocaleDateString("it-IT")
+
+const uscita=Number(r.uscita||0)
+const entrata=Number(r.entrata||0)
+const importo=Number(r.importoEUR||0)
 
 const descU=r.descUscita||""
 const descE=r.descEntrata||""
@@ -126,15 +118,13 @@ let descUPrint=""
 let entrataPrint=""
 let descEPrint=""
 
-if(descU && !visteUscite.has(keyU))
-{
+if(descU && !visteUscite.has(keyU)){
 uscitaPrint=uscita
 descUPrint=descU
 visteUscite.add(keyU)
 }
 
-if(descE && !visteEntrate.has(keyE))
-{
+if(descE && !visteEntrate.has(keyE)){
 entrataPrint=entrata
 descEPrint=descE
 visteEntrate.add(keyE)
@@ -144,23 +134,19 @@ totEntrate+=entrata
 totUscite+=uscita
 totImporto+=importo
 
-const row=document.createElement("tr")
+const tr=document.createElement("tr")
 
-row.innerHTML=`
-<td>${formatData(dataVal)}</td>
-
+tr.innerHTML=`
+<td>${dataVal}</td>
 <td class="${classe(uscitaPrint)}">${formatNum(uscitaPrint)}</td>
 <td>${descUPrint}</td>
-
 <td>${r.causale||""}</td>
-
 <td class="${classe(importo)}">${formatNum(importo)}</td>
-
 <td class="${classe(entrataPrint)}">${formatNum(entrataPrint)}</td>
 <td>${descEPrint}</td>
 `
 
-tbody.appendChild(row)
+tbody.appendChild(tr)
 
 })
 
@@ -170,26 +156,15 @@ document.getElementById("totImporto").innerText=totImporto.toFixed(2)
 
 })
 
-function formatNum(v)
-{
-if(v===0||v==="") return ""
+function formatNum(v){
+if(v===""||v===0) return ""
 return Number(v).toFixed(2)
 }
 
-function classe(n)
-{
+function classe(n){
 if(n>0) return "numero-positivo"
 if(n<0) return "numero-negativo"
 return "numero-zero"
-}
-
-function formatData(d)
-{
-if(!d) return ""
-if(d.length===8)
-return d.substring(6,8)+"/"+d.substring(4,6)+"/"+d.substring(0,4)
-
-return d
 }
 
 </script>
