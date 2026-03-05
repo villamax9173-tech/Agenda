@@ -1,43 +1,151 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
+
 <meta charset="UTF-8">
-<title>WAnalisi con grafico</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Wanalis</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f6f8;margin:40px;}
-h1{margin-bottom:20px;}
-#totali{display:flex;gap:40px;font-size:20px;margin-bottom:20px;}
-.box{background:white;padding:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
-table{width:100%;border-collapse:collapse;background:white;margin-top:20px;}
-th{background:#2c3e50;color:white;padding:8px;text-align:left;}
-td{padding:6px;border-bottom:1px solid #ddd;}
-.numero{text-align:right;font-weight:bold;}
-.pos{color:green;}
-.neg{color:red;}
-.zero{color:black;}
-.passato{background:#e0e0e0;}
+
+body{
+font-family:Arial;
+margin:10px;
+background:#f5f5f5;
+}
+
+h1{
+text-align:center;
+}
+
+.totali{
+display:flex;
+flex-wrap:wrap;
+justify-content:space-around;
+margin-bottom:15px;
+}
+
+.box{
+background:white;
+padding:10px;
+border-radius:6px;
+width:30%;
+min-width:120px;
+text-align:center;
+box-shadow:0 0 4px rgba(0,0,0,0.2);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
+
+th,td{
+padding:6px;
+border-bottom:1px solid #ddd;
+font-size:14px;
+}
+
+th{
+background:#fafafa;
+}
+
+.passato{
+background:#ececec;
+}
+
+.positivo{
+color:green;
+font-weight:bold;
+}
+
+.negativo{
+color:red;
+font-weight:bold;
+}
+
+.zero{
+color:black;
+}
+
+canvas{
+max-width:600px;
+margin:auto;
+display:block;
+}
+
+.popup{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.4);
+display:none;
+justify-content:center;
+align-items:center;
+}
+
+.popup-content{
+background:white;
+padding:20px;
+border-radius:8px;
+width:300px;
+}
+
+.popup input{
+width:100%;
+margin-bottom:10px;
+padding:6px;
+}
+
+.popup button{
+width:48%;
+padding:8px;
+}
+
 </style>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
 <body>
 
 <h1>Wanalis</h1>
 
-<div id="totali">
-<div class="box">Entrate Effettive<br><b id="totEntrate">0</b></div>
-<div class="box">Uscite Effettive<br><b id="totUscite">0</b></div>
-<div class="box">Differenza<br><b id="totDiff">0</b></div>
+<div class="totali">
+
+<div class="box">
+Entrate Effettive<br>
+<span id="totEntrate">0</span>
 </div>
 
-<!-- Grafico -->
-<canvas id="usciteChart" style="max-width:800px;height:300px;margin-bottom:20px;"></canvas>
+<div class="box">
+Uscite Effettive<br>
+<span id="totUscite">0</span>
+</div>
+
+<div class="box">
+Differenza<br>
+<span id="totDiff">0</span>
+</div>
+
+</div>
+
+<canvas id="grafico" height="120"></canvas>
+
+<br>
 
 <table id="tabella">
+
 <thead>
+
 <tr>
+
 <th>Data</th>
 <th>Uscita</th>
 <th>DescUscita</th>
@@ -45,105 +153,280 @@ td{padding:6px;border-bottom:1px solid #ddd;}
 <th>Importo EUR</th>
 <th>Entrata</th>
 <th>DescEntrata</th>
+
 </tr>
+
 </thead>
+
 <tbody></tbody>
+
 </table>
 
-<script>
-const API_URL = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+<div class="popup" id="popup">
 
-function parseDate(str){
-    let d = new Date(str);
-    if(isNaN(d)) return "";
-    return d.toLocaleDateString("it-IT");
+<div class="popup-content">
+
+<h3 id="titoloPopup"></h3>
+
+<input id="valoreInput" placeholder="Importo">
+
+<input id="descInput" placeholder="Descrizione">
+
+<div style="display:flex;justify-content:space-between">
+
+<button onclick="salvaPopup()">Salva</button>
+<button onclick="chiudiPopup()">Annulla</button>
+
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const api="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+const updateApi="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateMovAnalisi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+let dati=[];
+let tipoEdit="";
+let rigaEdit=null;
+
+function formatData(d){
+
+let date=new Date(d);
+return date.toLocaleDateString("it-IT");
+
 }
 
-function coloreNumero(v){
-    if(v>0) return "numero pos";
-    if(v<0) return "numero neg";
-    return "numero zero";
+function classeNumero(v){
+
+if(v>0) return "positivo";
+if(v<0) return "negativo";
+return "zero";
+
 }
 
 async function carica(){
-    let res = await fetch(API_URL);
-    let data = await res.json();
-    let tbody = document.querySelector("#tabella tbody");
-    tbody.innerHTML="";
 
-    let oggi = new Date(); oggi.setHours(0,0,0,0);
-    let totEntrateEff = 0;
-    let totUsciteEff = 0;
+let res=await fetch(api);
 
-    let uscitaRaggr = {};
+dati=await res.json();
 
-    data.forEach(r=>{
-        let dataR = new Date(r.Idata); dataR.setHours(0,0,0,0);
-        let entrata = r.Entrata ?? 0;
-        let uscita = r.Uscita ?? 0;
-        let imp = r.ImportoEUR ?? 0;
+render();
 
-        // Totali
-        if(dataR>=oggi){
-            totEntrateEff += entrata;
-            totUsciteEff += uscita;
-        }
-        if(imp>0){ totEntrateEff += imp; }
-        if(imp<0){ totUsciteEff += Math.abs(imp); }
+}
 
-        // Raggruppamento per grafico (solo uscite future e non zero)
-        if(dataR>=oggi){
-            let val = uscita + (imp<0?Math.abs(imp):0);
-            if(val>0){
-                let key = r.DescUscita || "Altro";
-                if(!uscitaRaggr[key]) uscitaRaggr[key]=0;
-                uscitaRaggr[key] += val;
-            }
-        }
+function render(){
 
-        // Tabella
-        let tr = document.createElement("tr");
-        if(dataR<oggi) tr.classList.add("passato"); // evidenzia giorni passati
-        tr.innerHTML = `
-            <td>${parseDate(r.Idata)}</td>
-            <td class="${coloreNumero(uscita)}">${uscita || ""}</td>
-            <td>${r.DescUscita || ""}</td>
-            <td>${r.Causale || ""}</td>
-            <td class="${coloreNumero(imp)}">${imp || ""}</td>
-            <td class="${coloreNumero(entrata)}">${entrata || ""}</td>
-            <td>${r.DescEntrata || ""}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+let tbody=document.querySelector("#tabella tbody");
 
-    // Mostra totali
-    let diff = totEntrateEff - totUsciteEff;
-    document.getElementById("totEntrate").innerText = totEntrateEff.toFixed(2);
-    document.getElementById("totUscite").innerText = totUsciteEff.toFixed(2);
-    document.getElementById("totDiff").innerText = diff.toFixed(2);
+tbody.innerHTML="";
 
-    // Grafico
-    const ctx = document.getElementById('usciteChart').getContext('2d');
-    new Chart(ctx,{
-        type:'bar',
-        data:{
-            labels:Object.keys(uscitaRaggr),
-            datasets:[{
-                label:'Uscite future raggruppate',
-                data:Object.values(uscitaRaggr),
-                backgroundColor:'#e74c3c'
-            }]
-        },
-        options:{
-            responsive:true,
-            plugins:{legend:{display:false}},
-            scales:{y:{beginAtZero:true,title:{display:true,text:'Importo'}}}
-        }
-    });
+let oggi=new Date();
+
+let totEntrate=0;
+let totUscite=0;
+
+let grafico={};
+
+dati.forEach(r=>{
+
+let tr=document.createElement("tr");
+
+let data=new Date(r.Idata);
+
+if(data<oggi) tr.classList.add("passato");
+
+let importo=r.ImportoEUR||0;
+
+if(importo>0) totEntrate+=importo;
+if(importo<0) totUscite+=Math.abs(importo);
+
+if(data>=oggi){
+
+totEntrate+=r.Entrata||0;
+totUscite+=r.Uscita||0;
+
+if(r.Uscita>0){
+
+let d=r.DescUscita;
+
+if(!grafico[d]) grafico[d]=0;
+
+grafico[d]+=r.Uscita;
+
+}
+
+}
+
+tr.innerHTML=`
+
+<td>${formatData(r.Idata)}</td>
+
+<td onclick="editUscita(${JSON.stringify(r)})">${r.Uscita||""}</td>
+
+<td>${r.DescUscita||""}</td>
+
+<td>${r.Causale||""}</td>
+
+<td class="${classeNumero(importo)}">${importo||""}</td>
+
+<td onclick="editEntrata(${JSON.stringify(r)})">${r.Entrata||""}</td>
+
+<td>${r.DescEntrata||""}</td>
+
+`;
+
+tbody.appendChild(tr);
+
+});
+
+document.getElementById("totEntrate").innerText=totEntrate.toFixed(2);
+document.getElementById("totUscite").innerText=totUscite.toFixed(2);
+document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2);
+
+disegnaGrafico(grafico);
+
+}
+
+let chart=null;
+
+function disegnaGrafico(d){
+
+let labels=[];
+let values=[];
+
+for(let k in d){
+
+if(d[k]>0){
+
+labels.push(k);
+values.push(d[k]);
+
+}
+
+}
+
+let ctx=document.getElementById("grafico");
+
+if(chart) chart.destroy();
+
+chart=new Chart(ctx,{
+
+type:"bar",
+
+data:{
+
+labels:labels,
+
+datasets:[{
+
+data:values
+
+}]
+
+}
+
+});
+
+}
+
+function editEntrata(r){
+
+tipoEdit="entrata";
+rigaEdit=r;
+
+document.getElementById("titoloPopup").innerText="Modifica Entrata";
+
+document.getElementById("valoreInput").value=r.Entrata||"";
+
+document.getElementById("descInput").value=r.DescEntrata||"";
+
+document.getElementById("popup").style.display="flex";
+
+}
+
+function editUscita(r){
+
+tipoEdit="uscita";
+rigaEdit=r;
+
+document.getElementById("titoloPopup").innerText="Modifica Uscita";
+
+document.getElementById("valoreInput").value=r.Uscita||"";
+
+document.getElementById("descInput").value=r.DescUscita||"";
+
+document.getElementById("popup").style.display="flex";
+
+}
+
+function chiudiPopup(){
+
+document.getElementById("popup").style.display="none";
+
+}
+
+async function salvaPopup(){
+
+let valore=parseFloat(document.getElementById("valoreInput").value)||0;
+
+let desc=document.getElementById("descInput").value;
+
+let body={
+
+Idata:rigaEdit.Idata,
+
+Entrata:rigaEdit.Entrata,
+
+DescEntrata:rigaEdit.DescEntrata,
+
+Uscita:rigaEdit.Uscita,
+
+DescUscita:rigaEdit.DescUscita
+
+};
+
+if(tipoEdit==="entrata"){
+
+body.Entrata=valore;
+body.DescEntrata=desc;
+
+}
+
+if(tipoEdit==="uscita"){
+
+body.Uscita=valore;
+body.DescUscita=desc;
+
+}
+
+await fetch(updateApi,{
+
+method:"POST",
+
+headers:{
+
+"Content-Type":"application/json"
+
+},
+
+body:JSON.stringify(body)
+
+});
+
+chiudiPopup();
+
+carica();
+
 }
 
 carica();
+
 </script>
 
 </body>
+
 </html>
