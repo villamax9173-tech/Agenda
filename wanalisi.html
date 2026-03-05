@@ -2,100 +2,41 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>WAnalisi</title>
+<title>WAnalisi con grafico</title>
 
 <style>
-
-body{
-font-family: Arial;
-background:#f4f6f8;
-margin:40px;
-}
-
-h1{
-margin-bottom:20px;
-}
-
-#totali{
-display:flex;
-gap:40px;
-font-size:20px;
-margin-bottom:20px;
-}
-
-.box{
-background:white;
-padding:15px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-background:white;
-}
-
-th{
-background:#2c3e50;
-color:white;
-padding:8px;
-text-align:left;
-}
-
-td{
-padding:6px;
-border-bottom:1px solid #ddd;
-}
-
-.numero{
-text-align:right;
-font-weight:bold;
-}
-
-.pos{
-color:green;
-}
-
-.neg{
-color:red;
-}
-
-.zero{
-color:black;
-}
-
+body{font-family:Arial;background:#f4f6f8;margin:40px;}
+h1{margin-bottom:20px;}
+#totali{display:flex;gap:40px;font-size:20px;margin-bottom:20px;}
+.box{background:white;padding:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);}
+table{width:100%;border-collapse:collapse;background:white;margin-top:20px;}
+th{background:#2c3e50;color:white;padding:8px;text-align:left;}
+td{padding:6px;border-bottom:1px solid #ddd;}
+.numero{text-align:right;font-weight:bold;}
+.pos{color:green;}
+.neg{color:red;}
+.zero{color:black;}
 </style>
-</head>
 
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 <body>
 
 <h1>Wanalis</h1>
 
 <div id="totali">
-
-<div class="box">
-Entrate Effettive<br>
-<b id="totEntrate">0</b>
+<div class="box">Entrate Effettive<br><b id="totEntrate">0</b></div>
+<div class="box">Uscite Effettive<br><b id="totUscite">0</b></div>
+<div class="box">Differenza<br><b id="totDiff">0</b></div>
 </div>
 
-<div class="box">
-Uscite Effettive<br>
-<b id="totUscite">0</b>
-</div>
-
-<div class="box">
-Differenza<br>
-<b id="totDiff">0</b>
-</div>
-
-</div>
+<!-- Grafico -->
+<canvas id="usciteChart" style="max-width:800px;margin-bottom:20px;"></canvas>
 
 <table id="tabella">
-
 <thead>
 <tr>
-
 <th>Data</th>
 <th>Uscita</th>
 <th>DescUscita</th>
@@ -103,117 +44,101 @@ Differenza<br>
 <th>Importo EUR</th>
 <th>Entrata</th>
 <th>DescEntrata</th>
-
 </tr>
 </thead>
-
 <tbody></tbody>
-
 </table>
 
 <script>
-
 const API_URL = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-
 function parseDate(str){
-
-let d = new Date(str);
-
-if(isNaN(d)){
-return "";
+    let d = new Date(str);
+    if(isNaN(d)) return "";
+    return d.toLocaleDateString("it-IT");
 }
-
-return d.toLocaleDateString("it-IT");
-
-}
-
 
 function coloreNumero(v){
-
-if(v > 0) return "numero pos";
-if(v < 0) return "numero neg";
-return "numero zero";
-
+    if(v>0) return "numero pos";
+    if(v<0) return "numero neg";
+    return "numero zero";
 }
-
 
 async function carica(){
+    let res = await fetch(API_URL);
+    let data = await res.json();
+    let tbody = document.querySelector("#tabella tbody");
+    tbody.innerHTML="";
 
-let res = await fetch(API_URL);
+    let oggi = new Date(); oggi.setHours(0,0,0,0);
+    let totEntrateEff = 0;
+    let totUsciteEff = 0;
 
-let data = await res.json();
+    let uscitaRaggr = {};
 
-let tbody = document.querySelector("#tabella tbody");
+    data.forEach(r=>{
+        let dataR = new Date(r.Idata); dataR.setHours(0,0,0,0);
+        let entrata = r.Entrata ?? 0;
+        let uscita = r.Uscita ?? 0;
+        let imp = r.ImportoEUR ?? 0;
 
-tbody.innerHTML="";
+        // Totali
+        if(dataR>=oggi){
+            totEntrateEff += entrata;
+            totUsciteEff += uscita;
+        }
+        if(imp>0){ totEntrateEff += imp; }
+        if(imp<0){ totUsciteEff += Math.abs(imp); }
 
-let oggi = new Date();
-oggi.setHours(0,0,0,0);
+        // Raggruppamento per grafico (solo uscite future)
+        if(dataR>=oggi){
+            let key = r.DescUscita || "Altro";
+            if(!uscitaRaggr[key]) uscitaRaggr[key]=0;
+            uscitaRaggr[key] += uscita + (imp<0?Math.abs(imp):0);
+        }
 
-let totEntrateEff = 0;
-let totUsciteEff = 0;
+        // Tabella
+        let tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${parseDate(r.Idata)}</td>
+            <td class="${coloreNumero(uscita)}">${uscita || ""}</td>
+            <td>${r.DescUscita || ""}</td>
+            <td>${r.Causale || ""}</td>
+            <td class="${coloreNumero(imp)}">${imp || ""}</td>
+            <td class="${coloreNumero(entrata)}">${entrata || ""}</td>
+            <td>${r.DescEntrata || ""}</td>
+        `;
+        tbody.appendChild(tr);
+    });
 
-data.forEach(r=>{
+    // Mostra totali
+    let diff = totEntrateEff - totUsciteEff;
+    document.getElementById("totEntrate").innerText = totEntrateEff.toFixed(2);
+    document.getElementById("totUscite").innerText = totUsciteEff.toFixed(2);
+    document.getElementById("totDiff").innerText = diff.toFixed(2);
 
-let dataR = new Date(r.Idata);
-dataR.setHours(0,0,0,0);
-
-let entrata = r.Entrata ?? 0;
-let uscita = r.Uscita ?? 0;
-let imp = r.ImportoEUR ?? 0;
-
-if(dataR >= oggi){
-
-totEntrateEff += entrata;
-totUsciteEff += uscita;
-
-}
-
-if(imp > 0){
-totEntrateEff += imp;
-}
-
-if(imp < 0){
-totUsciteEff += Math.abs(imp);
-}
-
-
-let tr = document.createElement("tr");
-
-tr.innerHTML = `
-
-<td>${parseDate(r.Idata)}</td>
-
-<td class="${coloreNumero(uscita)}">${uscita || ""}</td>
-
-<td>${r.DescUscita || ""}</td>
-
-<td>${r.Causale || ""}</td>
-
-<td class="${coloreNumero(imp)}">${imp || ""}</td>
-
-<td class="${coloreNumero(entrata)}">${entrata || ""}</td>
-
-<td>${r.DescEntrata || ""}</td>
-
-`;
-
-tbody.appendChild(tr);
-
-});
-
-
-let diff = totEntrateEff - totUsciteEff;
-
-document.getElementById("totEntrate").innerText = totEntrateEff.toFixed(2);
-document.getElementById("totUscite").innerText = totUsciteEff.toFixed(2);
-document.getElementById("totDiff").innerText = diff.toFixed(2);
+    // Grafico
+    const ctx = document.getElementById('usciteChart').getContext('2d');
+    new Chart(ctx,{
+        type:'bar',
+        data:{
+            labels:Object.keys(uscitaRaggr),
+            datasets:[{
+                label:'Uscite future raggruppate',
+                data:Object.values(uscitaRaggr),
+                backgroundColor:'#e74c3c'
+            }]
+        },
+        options:{
+            responsive:true,
+            plugins:{legend:{display:false}},
+            scales:{y:{beginAtZero:true,title:{display:true,text:'Importo'}}}
+        }
+    });
 
 }
 
 carica();
-
 </script>
 
 </body>
