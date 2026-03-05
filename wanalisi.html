@@ -5,27 +5,62 @@
 <title>Wanalisi</title>
 
 <style>
-body { font-family: Arial; margin:20px; background:#f4f6f8; }
-h2 { text-align:center; }
 
-.totali { display:flex; justify-content:space-around; margin-bottom:20px; font-weight:bold; }
-
-.totale-box {
-    background:white;
-    padding:10px 20px;
-    border-radius:6px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+body{
+font-family:Arial;
+margin:20px;
+background:#f5f6f8;
 }
 
-table { width:100%; border-collapse:collapse; background:white; }
-th, td { border:1px solid #ccc; padding:8px; font-size:0.9rem; }
-th { background:#2c7be5; color:white; }
+h2{
+text-align:center;
+}
 
-.numero-positivo{ color:green; font-weight:bold; }
-.numero-negativo{ color:red; font-weight:bold; }
-.numero-zero{ color:black; }
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+}
 
-#loading{ text-align:center; margin-top:40px; font-weight:bold; }
+th,td{
+border:1px solid #ccc;
+padding:8px;
+font-size:14px;
+}
+
+th{
+background:#2c7be5;
+color:white;
+}
+
+.numero-positivo{
+color:green;
+font-weight:bold;
+}
+
+.numero-negativo{
+color:red;
+font-weight:bold;
+}
+
+.numero-zero{
+color:black;
+}
+
+.totali{
+display:flex;
+justify-content:space-around;
+margin-bottom:20px;
+font-weight:bold;
+}
+
+.box{
+background:white;
+padding:10px 20px;
+border-radius:6px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
 </style>
 </head>
 
@@ -34,22 +69,21 @@ th { background:#2c7be5; color:white; }
 <h2>Wanalisi</h2>
 
 <div class="totali">
-    <div class="totale-box">Totale Entrate: <span id="totEntrate">0</span></div>
-    <div class="totale-box">Totale Uscite: <span id="totUscite">0</span></div>
-    <div class="totale-box">Totale Importo EUR: <span id="totImporto">0</span></div>
+<div class="box">Tot Entrate: <span id="totEntrate">0</span></div>
+<div class="box">Tot Uscite: <span id="totUscite">0</span></div>
+<div class="box">Tot Importo EUR: <span id="totImporto">0</span></div>
 </div>
 
-<div id="loading">Caricamento dati...</div>
-
-<table id="wanalisTable" style="display:none;">
+<table id="tabella">
 <thead>
 <tr>
 <th>Data</th>
-<th>Descrizione Entrata</th>
-<th>Entrata</th>
-<th>Descrizione Uscita</th>
 <th>Uscita</th>
+<th>DescUscita</th>
+<th>Causale</th>
 <th>Importo EUR</th>
+<th>Entrata</th>
+<th>DescEntrata</th>
 </tr>
 </thead>
 <tbody></tbody>
@@ -57,104 +91,105 @@ th { background:#2c7be5; color:white; }
 
 <script>
 
-const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const apiUrl="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 fetch(apiUrl)
-.then(res=>res.json())
+.then(r=>r.json())
 .then(data=>{
 
-    console.log("JSON REALE:", data);
+const tbody=document.querySelector("#tabella tbody")
 
-    if(!data || data.length===0){
-        document.getElementById("loading").innerText="Nessun dato trovato.";
-        return;
-    }
+let totEntrate=0
+let totUscite=0
+let totImporto=0
 
-    const tbody=document.querySelector("#wanalisTable tbody");
-    document.getElementById("loading").style.display="none";
+const visteEntrate=new Set()
+const visteUscite=new Set()
 
-    let totEntrate=0;
-    let totUscite=0;
-    let totImporto=0;
+data
+.sort((a,b)=>a.idata.localeCompare(b.idata))
+.forEach(r=>{
 
-    const grouped={};
+const dataVal=r.idata
+const uscita=parseFloat(r.uscita||0)
+const entrata=parseFloat(r.entrata||0)
+const importo=parseFloat(r.importoEUR||0)
 
-    data.forEach(item=>{
+const descU=r.descUscita||""
+const descE=r.descEntrata||""
 
-        // 🔎 Trova dinamicamente proprietà corrette
-        const idata = item.idata || item.Idata;
-        const entrata = parseFloat(item.entrata ?? item.Entrata ?? 0);
-        const uscita = parseFloat(item.uscita ?? item.Uscita ?? 0);
-        const importo = parseFloat(item.importoEUR ?? item.ImportoEUR ?? 0);
-        const descEntrata = item.descEntrata ?? item.DescEntrata ?? "";
-        const descUscita = item.descUscita ?? item.DescUscita ?? "";
+const keyU=dataVal+"-"+descU
+const keyE=dataVal+"-"+descE
 
-        const key = normalizzaDataKey(idata);
+let uscitaPrint=""
+let descUPrint=""
+let entrataPrint=""
+let descEPrint=""
 
-        if(!grouped[key]){
-            grouped[key]={ idata:key, entrata:0, uscita:0, importo:0, descEntrata:[], descUscita:[] };
-        }
-
-        grouped[key].entrata+=entrata;
-        grouped[key].uscita+=uscita;
-        grouped[key].importo+=importo;
-
-        if(descEntrata) grouped[key].descEntrata.push(descEntrata);
-        if(descUscita) grouped[key].descUscita.push(descUscita);
-    });
-
-    Object.values(grouped)
-    .sort((a,b)=>a.idata.localeCompare(b.idata))
-    .forEach(g=>{
-
-        totEntrate+=g.entrata;
-        totUscite+=g.uscita;
-        totImporto+=g.importo;
-
-        const row=document.createElement("tr");
-
-        row.innerHTML=`
-            <td>${formatData(g.idata)}</td>
-            <td>${g.descEntrata.join("<br>")}</td>
-            <td class="${classe(g.entrata)}">${g.entrata.toFixed(2)}</td>
-            <td>${g.descUscita.join("<br>")}</td>
-            <td class="${classe(g.uscita)}">${g.uscita.toFixed(2)}</td>
-            <td class="${classe(g.importo)}">${g.importo.toFixed(2)}</td>
-        `;
-
-        tbody.appendChild(row);
-    });
-
-    document.getElementById("totEntrate").innerText=totEntrate.toFixed(2);
-    document.getElementById("totUscite").innerText=totUscite.toFixed(2);
-    document.getElementById("totImporto").innerText=totImporto.toFixed(2);
-
-    document.getElementById("wanalisTable").style.display="table";
-
-});
-
-function normalizzaDataKey(v){
-    if(!v) return "";
-    const s=v.toString();
-    if(s.length===8 && !s.includes("-")) return s;
-    const d=new Date(s);
-    if(!isNaN(d)){
-        return d.getFullYear().toString()
-        +(d.getMonth()+1).toString().padStart(2,'0')
-        +d.getDate().toString().padStart(2,'0');
-    }
-    return s;
+if(descU && !visteUscite.has(keyU))
+{
+uscitaPrint=uscita
+descUPrint=descU
+visteUscite.add(keyU)
 }
 
-function formatData(k){
-    if(!k || k.length!==8) return k;
-    return k.substring(6,8)+"/"+k.substring(4,6)+"/"+k.substring(0,4);
+if(descE && !visteEntrate.has(keyE))
+{
+entrataPrint=entrata
+descEPrint=descE
+visteEntrate.add(keyE)
 }
 
-function classe(n){
-    if(n>0) return "numero-positivo";
-    if(n<0) return "numero-negativo";
-    return "numero-zero";
+totEntrate+=entrata
+totUscite+=uscita
+totImporto+=importo
+
+const row=document.createElement("tr")
+
+row.innerHTML=`
+<td>${formatData(dataVal)}</td>
+
+<td class="${classe(uscitaPrint)}">${formatNum(uscitaPrint)}</td>
+<td>${descUPrint}</td>
+
+<td>${r.causale||""}</td>
+
+<td class="${classe(importo)}">${formatNum(importo)}</td>
+
+<td class="${classe(entrataPrint)}">${formatNum(entrataPrint)}</td>
+<td>${descEPrint}</td>
+`
+
+tbody.appendChild(row)
+
+})
+
+document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
+document.getElementById("totUscite").innerText=totUscite.toFixed(2)
+document.getElementById("totImporto").innerText=totImporto.toFixed(2)
+
+})
+
+function formatNum(v)
+{
+if(v===0||v==="") return ""
+return Number(v).toFixed(2)
+}
+
+function classe(n)
+{
+if(n>0) return "numero-positivo"
+if(n<0) return "numero-negativo"
+return "numero-zero"
+}
+
+function formatData(d)
+{
+if(!d) return ""
+if(d.length===8)
+return d.substring(6,8)+"/"+d.substring(4,6)+"/"+d.substring(0,4)
+
+return d
 }
 
 </script>
