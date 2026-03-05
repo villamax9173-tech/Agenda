@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Wanalis</title>
 
@@ -14,8 +13,8 @@
 
 body{
 font-family:Arial;
-margin:10px;
-background:#f5f5f5;
+margin:20px;
+background:#f7f7f7;
 }
 
 h1{
@@ -24,93 +23,102 @@ text-align:center;
 
 .totali{
 display:flex;
-flex-wrap:wrap;
-justify-content:space-around;
-margin-bottom:15px;
+justify-content:center;
+gap:40px;
+margin:20px;
+font-size:20px;
 }
 
-.box{
+.totali div{
 background:white;
-padding:10px;
-border-radius:6px;
-width:30%;
-min-width:120px;
-text-align:center;
-box-shadow:0 0 4px rgba(0,0,0,0.2);
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+canvas{
+width:100%;
+max-width:900px;
+height:300px;
+margin:auto;
+display:block;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
 background:white;
+margin-top:20px;
 }
 
 th,td{
-padding:6px;
-border-bottom:1px solid #ddd;
-font-size:14px;
+padding:8px;
+border:1px solid #ddd;
+text-align:left;
 }
 
 th{
-background:#fafafa;
+background:#eeeeee;
 }
 
 .passato{
-background:#ececec;
+background:#f0f0f0;
 }
 
-.positivo{
+.numeroPos{
 color:green;
 font-weight:bold;
 }
 
-.negativo{
+.numeroNeg{
 color:red;
 font-weight:bold;
 }
 
-.zero{
+.numeroZero{
 color:black;
 }
 
-canvas{
-max-width:600px;
-margin:auto;
-display:block;
+.editEntrata{
+cursor:pointer;
+background:#f0fff0;
+}
+
+.editUscita{
+cursor:pointer;
+background:#fff0f0;
 }
 
 .popup{
 position:fixed;
 top:0;
 left:0;
-width:100%;
-height:100%;
+right:0;
+bottom:0;
 background:rgba(0,0,0,0.4);
 display:none;
-justify-content:center;
 align-items:center;
+justify-content:center;
 }
 
-.popup-content{
+.popupContent{
 background:white;
 padding:20px;
 border-radius:8px;
 width:300px;
 }
 
-.popup input{
+.popupContent input{
 width:100%;
 margin-bottom:10px;
-padding:6px;
+padding:5px;
 }
 
-.popup button{
-width:48%;
-padding:8px;
+.popupContent button{
+padding:8px 12px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -119,26 +127,15 @@ padding:8px;
 
 <div class="totali">
 
-<div class="box">
-Entrate Effettive<br>
-<span id="totEntrate">0</span>
-</div>
+<div>Entrate Effettive<br><b id="totEntrate">0</b></div>
 
-<div class="box">
-Uscite Effettive<br>
-<span id="totUscite">0</span>
-</div>
+<div>Uscite Effettive<br><b id="totUscite">0</b></div>
 
-<div class="box">
-Differenza<br>
-<span id="totDiff">0</span>
-</div>
+<div>Differenza<br><b id="totDiff">0</b></div>
 
 </div>
 
-<canvas id="grafico" height="120"></canvas>
-
-<br>
+<canvas id="grafico"></canvas>
 
 <table id="tabella">
 
@@ -148,11 +145,11 @@ Differenza<br>
 
 <th>Data</th>
 <th>Uscita</th>
-<th>DescUscita</th>
+<th>Desc Uscita</th>
 <th>Causale</th>
 <th>Importo EUR</th>
 <th>Entrata</th>
-<th>DescEntrata</th>
+<th>Desc Entrata</th>
 
 </tr>
 
@@ -162,22 +159,19 @@ Differenza<br>
 
 </table>
 
+
 <div class="popup" id="popup">
 
-<div class="popup-content">
+<div class="popupContent">
 
 <h3 id="titoloPopup"></h3>
 
-<input id="valoreInput" placeholder="Importo">
+<input id="valoreInput" placeholder="Valore">
 
 <input id="descInput" placeholder="Descrizione">
 
-<div style="display:flex;justify-content:space-between">
-
-<button onclick="salvaPopup()">Salva</button>
-<button onclick="chiudiPopup()">Annulla</button>
-
-</div>
+<button onclick="salva()">Salva</button>
+<button onclick="chiudi()">Annulla</button>
 
 </div>
 
@@ -185,79 +179,83 @@ Differenza<br>
 
 <script>
 
-const api="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
 
-const updateApi="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateMovAnalisi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+let dati=[]
+let grafico=null
+let rigaEdit=null
+let tipoEdit=null
 
-let dati=[];
-let tipoEdit="";
-let rigaEdit=null;
+async function carica(){
+
+const res=await fetch(API)
+
+dati=await res.json()
+
+render()
+
+}
 
 function formatData(d){
 
-let date=new Date(d);
-return date.toLocaleDateString("it-IT");
+const date=new Date(d)
+
+return date.toLocaleDateString("it-IT")
 
 }
 
 function classeNumero(v){
 
-if(v>0) return "positivo";
-if(v<0) return "negativo";
-return "zero";
+if(v>0) return "numeroPos"
 
-}
+if(v<0) return "numeroNeg"
 
-async function carica(){
-
-let res=await fetch(api);
-
-dati=await res.json();
-
-render();
+return "numeroZero"
 
 }
 
 function render(){
 
-let tbody=document.querySelector("#tabella tbody");
+const tbody=document.querySelector("#tabella tbody")
 
-tbody.innerHTML="";
+tbody.innerHTML=""
 
-let oggi=new Date();
+const oggi=new Date()
 
-let totEntrate=0;
-let totUscite=0;
+oggi.setHours(0,0,0,0)
 
-let grafico={};
+let totEntrate=0
+let totUscite=0
 
-dati.forEach(r=>{
+let graficoMap={}
 
-let tr=document.createElement("tr");
+dati.forEach((r,i)=>{
 
-let data=new Date(r.Idata);
+const tr=document.createElement("tr")
 
-if(data<oggi) tr.classList.add("passato");
+const data=new Date(r.Idata)
 
-let importo=r.ImportoEUR||0;
+if(data<oggi) tr.classList.add("passato")
 
-if(importo>0) totEntrate+=importo;
-if(importo<0) totUscite+=Math.abs(importo);
+let importo=r.ImportoEUR ?? 0
 
-if(data>=oggi){
+if(data>oggi){
 
-totEntrate+=r.Entrata||0;
-totUscite+=r.Uscita||0;
+if(r.Entrata) totEntrate+=Number(r.Entrata)
 
-if(r.Uscita>0){
+if(r.Uscita) totUscite+=Number(r.Uscita)
 
-let d=r.DescUscita;
+if(importo>0) totEntrate+=importo
 
-if(!grafico[d]) grafico[d]=0;
-
-grafico[d]+=r.Uscita;
+if(importo<0) totUscite+=Math.abs(importo)
 
 }
+
+if(data>oggi && r.Uscita){
+
+const key=r.DescUscita||"altro"
+
+graficoMap[key]=(graficoMap[key]||0)+Number(r.Uscita)
 
 }
 
@@ -265,7 +263,7 @@ tr.innerHTML=`
 
 <td>${formatData(r.Idata)}</td>
 
-<td onclick="editUscita(${JSON.stringify(r)})">${r.Uscita||""}</td>
+<td class="editUscita" onclick="editUscita(${i})">${r.Uscita||""}</td>
 
 <td>${r.DescUscita||""}</td>
 
@@ -273,160 +271,141 @@ tr.innerHTML=`
 
 <td class="${classeNumero(importo)}">${importo||""}</td>
 
-<td onclick="editEntrata(${JSON.stringify(r)})">${r.Entrata||""}</td>
+<td class="editEntrata" onclick="editEntrata(${i})">${r.Entrata||""}</td>
 
 <td>${r.DescEntrata||""}</td>
 
-`;
+`
 
-tbody.appendChild(tr);
+tbody.appendChild(tr)
 
-});
+})
 
-document.getElementById("totEntrate").innerText=totEntrate.toFixed(2);
-document.getElementById("totUscite").innerText=totUscite.toFixed(2);
-document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2);
+document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
 
-disegnaGrafico(grafico);
+document.getElementById("totUscite").innerText=totUscite.toFixed(2)
 
-}
+document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2)
 
-let chart=null;
-
-function disegnaGrafico(d){
-
-let labels=[];
-let values=[];
-
-for(let k in d){
-
-if(d[k]>0){
-
-labels.push(k);
-values.push(d[k]);
+disegnaGrafico(graficoMap)
 
 }
 
+function disegnaGrafico(map){
+
+const labels=[]
+const valori=[]
+
+for(const k in map){
+
+if(map[k]!=0){
+
+labels.push(k)
+
+valori.push(map[k])
+
 }
 
-let ctx=document.getElementById("grafico");
+}
 
-if(chart) chart.destroy();
+if(grafico) grafico.destroy()
 
-chart=new Chart(ctx,{
+const ctx=document.getElementById("grafico")
+
+grafico=new Chart(ctx,{
 
 type:"bar",
 
 data:{
-
 labels:labels,
-
 datasets:[{
-
-data:values
-
+label:"Uscite",
+data:valori
 }]
+},
+
+options:{
+plugins:{
+legend:{display:false}
+}
+}
+
+})
 
 }
 
-});
+function editEntrata(i){
+
+tipoEdit="entrata"
+rigaEdit=dati[i]
+
+document.getElementById("titoloPopup").innerText="Modifica Entrata"
+
+document.getElementById("valoreInput").value=rigaEdit.Entrata||""
+
+document.getElementById("descInput").value=rigaEdit.DescEntrata||""
+
+document.getElementById("popup").style.display="flex"
 
 }
 
-function editEntrata(r){
+function editUscita(i){
 
-tipoEdit="entrata";
-rigaEdit=r;
+tipoEdit="uscita"
+rigaEdit=dati[i]
 
-document.getElementById("titoloPopup").innerText="Modifica Entrata";
+document.getElementById("titoloPopup").innerText="Modifica Uscita"
 
-document.getElementById("valoreInput").value=r.Entrata||"";
+document.getElementById("valoreInput").value=rigaEdit.Uscita||""
 
-document.getElementById("descInput").value=r.DescEntrata||"";
+document.getElementById("descInput").value=rigaEdit.DescUscita||""
 
-document.getElementById("popup").style.display="flex";
-
-}
-
-function editUscita(r){
-
-tipoEdit="uscita";
-rigaEdit=r;
-
-document.getElementById("titoloPopup").innerText="Modifica Uscita";
-
-document.getElementById("valoreInput").value=r.Uscita||"";
-
-document.getElementById("descInput").value=r.DescUscita||"";
-
-document.getElementById("popup").style.display="flex";
+document.getElementById("popup").style.display="flex"
 
 }
 
-function chiudiPopup(){
+function chiudi(){
 
-document.getElementById("popup").style.display="none";
-
-}
-
-async function salvaPopup(){
-
-let valore=parseFloat(document.getElementById("valoreInput").value)||0;
-
-let desc=document.getElementById("descInput").value;
-
-let body={
-
-Idata:rigaEdit.Idata,
-
-Entrata:rigaEdit.Entrata,
-
-DescEntrata:rigaEdit.DescEntrata,
-
-Uscita:rigaEdit.Uscita,
-
-DescUscita:rigaEdit.DescUscita
-
-};
-
-if(tipoEdit==="entrata"){
-
-body.Entrata=valore;
-body.DescEntrata=desc;
+document.getElementById("popup").style.display="none"
 
 }
 
-if(tipoEdit==="uscita"){
+async function salva(){
 
-body.Uscita=valore;
-body.DescUscita=desc;
+const valore=document.getElementById("valoreInput").value
+const desc=document.getElementById("descInput").value
 
-}
-
-await fetch(updateApi,{
+await fetch("https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateWanalis",{
 
 method:"POST",
 
 headers:{
-
 "Content-Type":"application/json"
-
 },
 
-body:JSON.stringify(body)
+body:JSON.stringify({
 
-});
+idata:rigaEdit.Idata,
 
-chiudiPopup();
+tipo:tipoEdit,
 
-carica();
+valore:valore,
+
+descrizione:desc
+
+})
+
+})
+
+chiudi()
+
+await carica()
 
 }
 
-carica();
+carica()
 
 </script>
 
 </body>
-
 </html>
