@@ -16,6 +16,7 @@ td{padding:6px;border-bottom:1px solid #ddd;}
 .pos{color:green;}
 .neg{color:red;}
 .zero{color:black;}
+.passato{background:#e0e0e0;}
 </style>
 
 <!-- Chart.js -->
@@ -32,7 +33,7 @@ td{padding:6px;border-bottom:1px solid #ddd;}
 </div>
 
 <!-- Grafico -->
-<canvas id="usciteChart" style="max-width:800px;margin-bottom:20px;"></canvas>
+<canvas id="usciteChart" style="max-width:800px;height:300px;margin-bottom:20px;"></canvas>
 
 <table id="tabella">
 <thead>
@@ -90,15 +91,19 @@ async function carica(){
         if(imp>0){ totEntrateEff += imp; }
         if(imp<0){ totUsciteEff += Math.abs(imp); }
 
-        // Raggruppamento per grafico (solo uscite future)
+        // Raggruppamento per grafico (solo uscite future e non zero)
         if(dataR>=oggi){
-            let key = r.DescUscita || "Altro";
-            if(!uscitaRaggr[key]) uscitaRaggr[key]=0;
-            uscitaRaggr[key] += uscita + (imp<0?Math.abs(imp):0);
+            let val = uscita + (imp<0?Math.abs(imp):0);
+            if(val>0){
+                let key = r.DescUscita || "Altro";
+                if(!uscitaRaggr[key]) uscitaRaggr[key]=0;
+                uscitaRaggr[key] += val;
+            }
         }
 
         // Tabella
         let tr = document.createElement("tr");
+        if(dataR<oggi) tr.classList.add("passato"); // evidenzia giorni passati
         tr.innerHTML = `
             <td>${parseDate(r.Idata)}</td>
             <td class="${coloreNumero(uscita)}">${uscita || ""}</td>
@@ -135,7 +140,6 @@ async function carica(){
             scales:{y:{beginAtZero:true,title:{display:true,text:'Importo'}}}
         }
     });
-
 }
 
 carica();
