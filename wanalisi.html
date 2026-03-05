@@ -1,20 +1,33 @@
 <!DOCTYPE html>
 <html lang="it">
-
 <head>
 <meta charset="UTF-8">
-<title>Wanalisi</title>
+<title>WAnalisi</title>
 
 <style>
 
 body{
-font-family:Arial;
-margin:20px;
-background:#f4f6f9;
+font-family: Arial;
+background:#f4f6f8;
+margin:40px;
 }
 
-h2{
-text-align:center;
+h1{
+margin-bottom:20px;
+}
+
+#totali{
+display:flex;
+gap:40px;
+font-size:20px;
+margin-bottom:20px;
+}
+
+.box{
+background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 table{
@@ -23,52 +36,66 @@ border-collapse:collapse;
 background:white;
 }
 
-th,td{
-border:1px solid #ccc;
-padding:8px;
-font-size:14px;
-}
-
 th{
-background:#2c7be5;
+background:#2c3e50;
 color:white;
+padding:8px;
+text-align:left;
 }
 
-.numero-positivo{color:green;font-weight:bold;}
-.numero-negativo{color:red;font-weight:bold;}
-.numero-zero{color:black;}
+td{
+padding:6px;
+border-bottom:1px solid #ddd;
+}
 
-.totali{
-display:flex;
-justify-content:space-around;
-margin-bottom:20px;
+.numero{
+text-align:right;
 font-weight:bold;
 }
 
-.box{
-background:white;
-padding:10px 20px;
-border-radius:6px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
+.pos{
+color:green;
+}
+
+.neg{
+color:red;
+}
+
+.zero{
+color:black;
 }
 
 </style>
 </head>
 
-
 <body>
 
-<h2>Wanalisi</h2>
+<h1>Wanalis</h1>
 
-<div class="totali">
-<div class="box">Tot Entrate: <span id="totEntrate">0</span></div>
-<div class="box">Tot Uscite: <span id="totUscite">0</span></div>
-<div class="box">Tot Importo EUR: <span id="totImporto">0</span></div>
+<div id="totali">
+
+<div class="box">
+Entrate Effettive<br>
+<b id="totEntrate">0</b>
 </div>
 
-<table>
+<div class="box">
+Uscite Effettive<br>
+<b id="totUscite">0</b>
+</div>
+
+<div class="box">
+Differenza<br>
+<b id="totDiff">0</b>
+</div>
+
+</div>
+
+<table id="tabella">
+
 <thead>
 <tr>
+
 <th>Data</th>
 <th>Uscita</th>
 <th>DescUscita</th>
@@ -76,100 +103,116 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 <th>Importo EUR</th>
 <th>Entrata</th>
 <th>DescEntrata</th>
+
 </tr>
 </thead>
 
-<tbody id="tabella"></tbody>
-</table>
+<tbody></tbody>
 
+</table>
 
 <script>
 
-const apiUrl="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const API_URL = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-fetch(apiUrl)
-.then(r=>r.json())
-.then(data=>{
 
-const tabella=document.getElementById("tabella")
+function parseDate(str){
 
-let totEntrate=0
-let totUscite=0
-let totImporto=0
+let d = new Date(str);
 
-const visteEntrate=new Set()
-const visteUscite=new Set()
+if(isNaN(d)){
+return "";
+}
 
-data.sort((a,b)=> new Date(a.Idata)-new Date(b.Idata))
+return d.toLocaleDateString("it-IT");
+
+}
+
+
+function coloreNumero(v){
+
+if(v > 0) return "numero pos";
+if(v < 0) return "numero neg";
+return "numero zero";
+
+}
+
+
+async function carica(){
+
+let res = await fetch(API_URL);
+
+let data = await res.json();
+
+let tbody = document.querySelector("#tabella tbody");
+
+tbody.innerHTML="";
+
+let oggi = new Date();
+oggi.setHours(0,0,0,0);
+
+let totEntrateEff = 0;
+let totUsciteEff = 0;
 
 data.forEach(r=>{
 
-const dataObj=new Date(r.Idata)
-const dataVal=dataObj.toLocaleDateString("it-IT")
+let dataR = new Date(r.Idata);
+dataR.setHours(0,0,0,0);
 
-const uscita=Number(r.Uscita||0)
-const entrata=Number(r.Entrata||0)
-const importo=Number(r.ImportoEUR||0)
+let entrata = r.Entrata ?? 0;
+let uscita = r.Uscita ?? 0;
+let imp = r.ImportoEUR ?? 0;
 
-const descU=r.DescUscita||""
-const descE=r.DescEntrata||""
+if(dataR >= oggi){
 
-const keyU=dataVal+"-"+descU
-const keyE=dataVal+"-"+descE
+totEntrateEff += entrata;
+totUsciteEff += uscita;
 
-let uscitaPrint=""
-let descUPrint=""
-let entrataPrint=""
-let descEPrint=""
-
-if(descU && descU!=="-" && !visteUscite.has(keyU)){
-uscitaPrint=uscita
-descUPrint=descU
-visteUscite.add(keyU)
 }
 
-if(descE && descE!=="-" && !visteEntrate.has(keyE)){
-entrataPrint=entrata
-descEPrint=descE
-visteEntrate.add(keyE)
+if(imp > 0){
+totEntrateEff += imp;
 }
 
-totEntrate+=entrata
-totUscite+=uscita
-totImporto+=importo
-
-const tr=document.createElement("tr")
-
-tr.innerHTML=`
-<td>${dataVal}</td>
-<td class="${classe(uscitaPrint)}">${formatta(uscitaPrint)}</td>
-<td>${descUPrint}</td>
-<td>${r.Causale||""}</td>
-<td class="${classe(importo)}">${formatta(importo)}</td>
-<td class="${classe(entrataPrint)}">${formatta(entrataPrint)}</td>
-<td>${descEPrint}</td>
-`
-
-tabella.appendChild(tr)
-
-})
-
-document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
-document.getElementById("totUscite").innerText=totUscite.toFixed(2)
-document.getElementById("totImporto").innerText=totImporto.toFixed(2)
-
-})
-
-function formatta(v){
-if(v===0 || v==="") return ""
-return Number(v).toFixed(2)
+if(imp < 0){
+totUsciteEff += Math.abs(imp);
 }
 
-function classe(v){
-if(v>0) return "numero-positivo"
-if(v<0) return "numero-negativo"
-return "numero-zero"
+
+let tr = document.createElement("tr");
+
+tr.innerHTML = `
+
+<td>${parseDate(r.Idata)}</td>
+
+<td class="${coloreNumero(uscita)}">${uscita || ""}</td>
+
+<td>${r.DescUscita || ""}</td>
+
+<td>${r.Causale || ""}</td>
+
+<td class="${coloreNumero(imp)}">${imp || ""}</td>
+
+<td class="${coloreNumero(entrata)}">${entrata || ""}</td>
+
+<td>${r.DescEntrata || ""}</td>
+
+`;
+
+tbody.appendChild(tr);
+
+});
+
+
+let diff = totEntrateEff - totUsciteEff;
+
+document.getElementById("totEntrate").innerText = totEntrateEff.toFixed(2);
+document.getElementById("totUscite").innerText = totUsciteEff.toFixed(2);
+document.getElementById("totDiff").innerText = diff.toFixed(2);
+
 }
+
+carica();
 
 </script>
 
