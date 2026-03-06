@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Wanalis</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+margin:20px;
+background:#f7f7f7;
+}
+
+h1{
+text-align:center;
+}
+
+.totali{
+display:flex;
+justify-content:center;
+gap:40px;
+margin:20px;
+font-size:20px;
+}
+
+.totali div{
+background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+
+canvas{
+width:100%;
+max-width:900px;
+height:300px;
+margin:auto;
+display:block;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+background:white;
+margin-top:20px;
+}
+
+th,td{
+padding:8px;
+border:1px solid #ddd;
+text-align:left;
+}
+
+th{
+background:#eeeeee;
+}
+
+.passato{
+background:#f0f0f0;
+}
+
+.numeroPos{
+color:green;
+font-weight:bold;
+}
+
+.numeroNeg{
+color:red;
+font-weight:bold;
+}
+
+.numeroZero{
+color:black;
+}
+
+.editEntrata{
+cursor:pointer;
+background:#f0fff0;
+}
+
+.editUscita{
+cursor:pointer;
+background:#fff0f0;
+}
+
+.popup{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+.popupContent{
+background:white;
+padding:20px;
+border-radius:8px;
+width:300px;
+}
+
+.popupContent input{
+width:100%;
+margin-bottom:10px;
+padding:5px;
+}
+
+.popupContent button{
+padding:8px 12px;
+}
+
+.weekend{
+background:#fff3cd;
+font-weight:bold;
+}
+
+.oggi{
+background:#cce5ff;
+font-weight:bold;
+}
+
+.appuntamenti{
+font-size:13px;
+color:#333;
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>Wanalis</h1>
+
+<div class="totali">
+
+<div>Entrate Effettive<br><b id="totEntrate">0</b></div>
+<div>Uscite Effettive<br><b id="totUscite">0</b></div>
+<div>Differenza<br><b id="totDiff">0</b></div>
+
+</div>
+
+<canvas id="grafico"></canvas>
+
+<table id="tabella">
+
+<thead>
+
+<tr>
+
+<th>Data</th>
+<th>Appuntamenti</th>
+<th>Uscita</th>
+<th>Desc Uscita</th>
+<th>Causale</th>
+<th>Importo EUR</th>
+<th>Entrata</th>
+<th>Desc Entrata</th>
+
+</tr>
+
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+
+<div class="popup" id="popup">
+
+<div class="popupContent">
+
+<h3 id="titoloPopup"></h3>
+
+<input id="valoreInput" placeholder="Valore">
+<input id="descInput" placeholder="Descrizione">
+
+<button onclick="salva()">Salva</button>
+<button onclick="chiudi()">Annulla</button>
+
+</div>
+
+</div>
+
+<script>
+
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+const API_AGENDA="https://white-glacier-0e7f25810.6.azurestaticapps.net/Agenda.html"
+
+let dati=[]
+let agendaMap={}
+let grafico=null
+let rigaEdit=null
+let tipoEdit=null
+
+async function carica(){
+
+const res=await fetch(API)
+dati=await res.json()
+
+await caricaAgenda()
+
+render()
+
+}
+
+async function caricaAgenda(){
+
+const res=await fetch(API_AGENDA)
+const agenda=await res.json()
+
+agendaMap={}
+
+agenda.forEach(a=>{
+
+const key=a.data.toString()
+
+if(!agendaMap[key]) agendaMap[key]=[]
+
+agendaMap[key].push(a.desc_breve)
+
+})
+
+}
+
+function formatData(d){
+
+const date=new Date(d)
+
+return date.toLocaleDateString("it-IT",{
+weekday:"short",
+day:"2-digit",
+month:"2-digit",
+year:"numeric"
+})
+
+}
+
+function formatKeyData(d){
+
+const date=new Date(d)
+
+const y=date.getFullYear()
+const m=(date.getMonth()+1).toString().padStart(2,"0")
+const day=date.getDate().toString().padStart(2,"0")
+
+return y+m+day
+
+}
+
+function classeNumero(v){
+
+if(v>0) return "numeroPos"
+if(v<0) return "numeroNeg"
+return "numeroZero"
+
+}
+
+function render(){
+
+const tbody=document.querySelector("#tabella tbody")
+tbody.innerHTML=""
+
+const oggi=new Date()
+oggi.setHours(0,0,0,0)
+
+let totEntrate=0
+let totUscite=0
+let graficoMap={}
+
+dati.forEach((r,i)=>{
+
+const tr=document.createElement("tr")
+
+const data=new Date(r.Idata)
+data.setHours(0,0,0,0)
+
+if(data<oggi) tr.classList.add("passato")
+
+if(data.getTime()===oggi.getTime()) tr.classList.add("oggi")
+
+const giorno=data.getDay()
+if(giorno===0 || giorno===6) tr.classList.add("weekend")
+
+let importo=r.ImportoEUR ?? 0
+
+if(data>oggi){
+
+if(r.Entrata) totEntrate+=Number(r.Entrata)
+if(r.Uscita) totUscite+=Number(r.Uscita)
+
+}
+
+if(importo>0) totEntrate+=importo
+if(importo<0) totUscite+=Math.abs(importo)
+
+if(data>oggi && r.Uscita){
+
+const key=r.DescUscita||"altro"
+graficoMap[key]=(graficoMap[key]||0)+Number(r.Uscita)
+
+}
+
+const keyData=formatKeyData(r.Idata)
+
+let appuntamenti=""
+
+if(agendaMap[keyData]){
+
+appuntamenti=agendaMap[keyData].join("<br>")
+
+}
+
+tr.innerHTML=`
+
+<td>${formatData(r.Idata)}</td>
+
+<td class="appuntamenti">${appuntamenti}</td>
+
+<td class="editUscita" onclick="editUscita(${i})">${r.Uscita||""}</td>
+
+<td>${r.DescUscita||""}</td>
+
+<td>${r.Causale||""}</td>
+
+<td class="${classeNumero(importo)}">${importo||""}</td>
+
+<td class="editEntrata" onclick="editEntrata(${i})">${r.Entrata||""}</td>
+
+<td>${r.DescEntrata||""}</td>
+
+`
+
+tbody.appendChild(tr)
+
+})
+
+document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
+document.getElementById("totUscite").innerText=totUscite.toFixed(2)
+document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2)
+
+disegnaGrafico(graficoMap)
+
+}
+
+function disegnaGrafico(map){
+
+const labels=[]
+const valori=[]
+
+for(const k in map){
+
+if(map[k]!=0){
+
+labels.push(k)
+valori.push(map[k])
+
+}
+
+}
+
+if(grafico) grafico.destroy()
+
+const ctx=document.getElementById("grafico")
+
+grafico=new Chart(ctx,{
+
+type:"bar",
+
+data:{
+labels:labels,
+datasets:[{
+label:"Uscite",
+data:valori
+}]
+},
+
+options:{
+plugins:{
+legend:{display:false}
+}
+}
+
+})
+
+}
+
+function editEntrata(i){
+
+tipoEdit="entrata"
+rigaEdit=dati[i]
+
+document.getElementById("titoloPopup").innerText="Modifica Entrata"
+
+document.getElementById("valoreInput").value=rigaEdit.Entrata||""
+document.getElementById("descInput").value=rigaEdit.DescEntrata||""
+
+document.getElementById("popup").style.display="flex"
+
+}
+
+function editUscita(i){
+
+tipoEdit="uscita"
+rigaEdit=dati[i]
+
+document.getElementById("titoloPopup").innerText="Modifica Uscita"
+
+document.getElementById("valoreInput").value=rigaEdit.Uscita||""
+document.getElementById("descInput").value=rigaEdit.DescUscita||""
+
+document.getElementById("popup").style.display="flex"
+
+}
+
+function chiudi(){
+
+document.getElementById("popup").style.display="none"
+
+}
+
+async function salva(){
+
+const valore=document.getElementById("valoreInput").value
+const desc=document.getElementById("descInput").value
+
+await fetch("https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateMovAnalisi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+idata:rigaEdit.Idata,
+tipo:tipoEdit,
+valore:valore,
+descrizione:desc
+
+})
+
+})
+
+chiudi()
+
+await carica()
+
+}
+
+carica()
+
+</script>
+
+</body>
+</html>
