@@ -66,10 +66,27 @@
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 function formatNumber(n) {
-    if(n == null) return '-';
-    return Math.trunc(n).toLocaleString('it-IT'); // sempre separatore migliaia, solo parte intera
+    if (n == null) return '-';
+    
+    let isNegative = n < 0;
+    let num = Math.trunc(Math.abs(n)); // parte intera positiva
+    let str = num.toString();
+    
+    // inserimento manuale dei punti ogni 3 cifre
+    let result = '';
+    while (str.length > 3) {
+        result = '.' + str.slice(-3) + result;
+        str = str.slice(0, -3);
+    }
+    result = str + result;
+    
+    if (isNegative) result = '-' + result;
+    
+    // controllo finale: se nella stringa ci fossero doppio punto, lo corregge
+    if (result.includes('..')) result = result.replace('..','.');
+    
+    return result;
 }
-
 function calculateImportance(data) {
     const totalAbs = data.reduce((acc, row) => acc + Math.abs(row.V), 0);
     return data.map(row => {
@@ -91,13 +108,13 @@ function populateTable(data) {
         const tr = document.createElement("tr");
         tr.className = row.V >= 0 ? "positive" : "negative";
         tr.innerHTML = `
-            <td class="text-center">${row.Anno}</td>
-            <td class="text-left">${row.DMese}</td>
-            <td class="text-right">${formatNumber(row.Entrata)}</td>
-            <td class="text-right">${formatNumber(row.Uscita)}</td>
-            <td class="text-right">${formatNumber(row.V)}</td>
-            <td class="text-center">${row.D}</td>
-            <td class="text-center">${icons[i]}</td>
+<td class="text-center">${row.Anno}</td>
+    <td class="text-left">${row.DMese}</td>
+    <td class="text-right">${formatNumber(row.ImpA)}</td>
+    <td class="text-right">${formatNumber(row.ImpD)}</td>
+    <td class="text-right">${formatNumber(row.V)}</td>
+    <td class="text-center">${row.D}</td>
+    <td class="text-center">${icons[i]}</td>
         `;
         tbody.appendChild(tr);
     });
