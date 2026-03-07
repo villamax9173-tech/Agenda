@@ -66,7 +66,8 @@
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 function formatNumber(n) {
-    return Math.trunc(n).toLocaleString('it-IT'); // separatore di migliaia, solo parte intera
+    if(n == null) return '-';
+    return Math.trunc(n).toLocaleString('it-IT'); // sempre separatore migliaia, solo parte intera
 }
 
 function calculateImportance(data) {
@@ -92,8 +93,8 @@ function populateTable(data) {
         tr.innerHTML = `
             <td class="text-center">${row.Anno}</td>
             <td class="text-left">${row.DMese}</td>
-            <td class="text-right">${row.Entrata != null ? formatNumber(row.Entrata) : '-'}</td>
-            <td class="text-right">${row.Uscita != null ? formatNumber(row.Uscita) : '-'}</td>
+            <td class="text-right">${formatNumber(row.Entrata)}</td>
+            <td class="text-right">${formatNumber(row.Uscita)}</td>
             <td class="text-right">${formatNumber(row.V)}</td>
             <td class="text-center">${row.D}</td>
             <td class="text-center">${icons[i]}</td>
