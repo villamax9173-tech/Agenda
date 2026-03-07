@@ -2,56 +2,74 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Agenda Villamax - Analisi EUD</title>
+<title>Agenda Villamax</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; }
-    h1 { text-align: center; margin-bottom: 20px; color: #333; }
-
-    .summary { display: flex; justify-content: space-around; margin-bottom: 30px; }
-    .summary div { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; width: 22%; }
-    .summary div span { display: block; font-size: 24px; font-weight: 700; margin-top: 5px; }
-
-    .slider-container { width: 80%; margin: 0 auto 30px; text-align: center; }
-    .slider-container input { width: 60%; }
-
-    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); font-size: 14px; }
-    th, td { padding: 8px 12px; font-weight: 500; }
-    th { background-color: #0078d7; color: #fff; font-size: 14px; }
-    tr:nth-child(even) { background-color: #f9f9f9; }
-    tr:hover { background-color: #e6f7ff; transition: 0.3s; }
-    td.text-left { text-align: left; }
-    td.text-center { text-align: center; }
-    td.text-right { text-align: right; }
-    .positive { color: #155724; font-weight: 600; }
-    .negative { color: #721c24; font-weight: 600; }
-    .importance { display: inline-block; border-radius: 50%; vertical-align: middle; }
-    canvas { background: #fff; padding: 20px; margin-bottom: 40px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+    background-color: #f8f9fa;
+}
+h2 { margin-top: 40px; }
+#summary div {
+    display: inline-block;
+    margin-right: 30px;
+    font-weight: bold;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+th, td {
+    border: 1px solid #ddd;
+    padding: 6px;
+}
+th {
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+}
+td {
+    padding: 6px;
+}
+td.text-left { text-align: left; }
+td.text-center { text-align: center; }
+td.text-right { text-align: right; }
+tr.pos { background-color: #d4edda; } /* verde chiaro per entrata positiva */
+tr.neg { background-color: #f8d7da; } /* rosso chiaro per uscita maggiore */
+.indicator {
+    display: inline-block;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    margin-left: 4px;
+}
 </style>
 </head>
 <body>
-<h1>Analisi Entrate/Uscite</h1>
 
-<div class="summary" id="summaryBox">
-    <div>Ultimi 3 mesi<span id="sum3m">0</span></div>
-    <div>Ultimi 6 mesi<span id="sum6m">0</span></div>
-    <div>Ultimo anno<span id="sum12m">0</span></div>
-    <div>Ultimi 3 anni<span id="sum36m">0</span></div>
+<h1>Agenda Villamax - Analisi Economica</h1>
+
+<div id="summary">
+    <div>Ultimi 3 mesi: <span id="sum3"></span></div>
+    <div>Ultimi 6 mesi: <span id="sum6"></span></div>
+    <div>Ultimo anno: <span id="sum12"></span></div>
+    <div>Ultimi 3 anni: <span id="sum36"></span></div>
 </div>
 
-<div class="slider-container">
-    <label for="monthSlider">Seleziona numero di mesi da visualizzare: <span id="sliderValue">12</span></label><br>
-    <input type="range" id="monthSlider" min="6" max="24" step="1" value="12">
-</div>
+<label for="monthSlider">Seleziona numero di mesi da visualizzare:</label>
+<input type="range" id="monthSlider" min="1" max="60" value="12" step="1">
+<span id="monthValue">12</span>
 
-<table id="eudTable">
+<h2>Tabella Mensile</h2>
+<table id="dataTable">
     <thead>
         <tr>
             <th>Anno</th>
             <th>Mese</th>
             <th>Entrate</th>
             <th>Uscite</th>
-            <th>Differenza (V)</th>
+            <th>Diff (V)</th>
             <th>D</th>
             <th>Importanza</th>
         </tr>
@@ -59,140 +77,133 @@
     <tbody></tbody>
 </table>
 
-<canvas id="yearChart" width="800" height="400"></canvas>
-<canvas id="monthChart" width="800" height="400"></canvas>
+<h2>Grafico Annuale</h2>
+<canvas id="annualChart" height="150"></canvas>
+
+<h2>Grafico Mensile</h2>
+<canvas id="monthlyChart" height="150"></canvas>
 
 <script>
-const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+// --- JSON dati dalla funzione Azure ---
+let jsonData = []; // qui metti la risposta JSON completa della Azure Function
 
+// --- Formattazione numeri con separatore migliaia ---
 function formatNumber(n) {
     if (n == null) return '-';
-    
     let isNegative = n < 0;
-    let num = Math.trunc(Math.abs(n)); // parte intera positiva
+    let num = Math.trunc(Math.abs(n));
     let str = num.toString();
-    
-    // inserimento manuale dei punti ogni 3 cifre
     let result = '';
-    while (str.length > 3) {
+    while(str.length > 3) {
         result = '.' + str.slice(-3) + result;
-        str = str.slice(0, -3);
+        str = str.slice(0,-3);
     }
     result = str + result;
-    
     if (isNegative) result = '-' + result;
-    
-    // controllo finale: se nella stringa ci fossero doppio punto, lo corregge
     if (result.includes('..')) result = result.replace('..','.');
-    
     return result;
 }
+
+// --- Calcolo indicatori di importanza ---
 function calculateImportance(data) {
-    const totalAbs = data.reduce((acc, row) => acc + Math.abs(row.V), 0);
-    return data.map(row => {
-        const ratio = Math.abs(row.V) / totalAbs;
-        let size = Math.min(15 + ratio*50, 50); // dimensione proporzionale
-        let color = row.V >=0 ? '#28a745' : '#dc3545';
-        return `<span class="importance" style="width:${size}px; height:${size}px; background-color:${color};"></span>`;
+    const total = data.reduce((acc, r) => acc + Math.abs(r.V), 0);
+    return data.map(r => {
+        let pct = total ? Math.abs(r.V)/total : 0;
+        if (pct > 0.2) return 'red';
+        if (pct > 0.1) return 'orange';
+        return 'green';
     });
 }
 
+// --- Popolamento tabella ---
 function populateTable(data) {
-    const tbody = document.querySelector("#eudTable tbody");
-    tbody.innerHTML = "";
-    data.sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
-
+    const tbody = document.querySelector('#dataTable tbody');
+    tbody.innerHTML = '';
     const icons = calculateImportance(data);
-
-    data.forEach((row, i) => {
-        const tr = document.createElement("tr");
-        tr.className = row.V >= 0 ? "positive" : "negative";
+    data.forEach((row,i) => {
+        const tr = document.createElement('tr');
+        tr.className = row.V >= 0 ? 'pos' : 'neg';
         tr.innerHTML = `
-<td class="text-center">${row.Anno}</td>
-    <td class="text-left">${row.DMese}</td>
-    <td class="text-right">${formatNumber(row.ImpA)}</td>
-    <td class="text-right">${formatNumber(row.ImpD)}</td>
-    <td class="text-right">${formatNumber(row.V)}</td>
-    <td class="text-center">${row.D}</td>
-    <td class="text-center">${icons[i]}</td>
+            <td class="text-center">${row.Anno}</td>
+            <td class="text-left">${row.DMese}</td>
+            <td class="text-right">${formatNumber(row.ImpA)}</td>
+            <td class="text-right">${formatNumber(row.ImpD)}</td>
+            <td class="text-right">${formatNumber(row.V)}</td>
+            <td class="text-center">${row.D}</td>
+            <td class="text-center"><span class="indicator" style="background-color:${icons[i]}"></span></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
-function updateSummary(data) {
-    const sorted = data.slice().sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
-    const sumLastN = n => sorted.slice(0,n).reduce((acc,row)=>acc+row.V,0);
-    document.getElementById("sum3m").textContent = formatNumber(sumLastN(3));
-    document.getElementById("sum6m").textContent = formatNumber(sumLastN(6));
-    document.getElementById("sum12m").textContent = formatNumber(sumLastN(12));
-    document.getElementById("sum36m").textContent = formatNumber(sumLastN(36));
+// --- Calcolo somma ultimi n mesi ---
+function sumLastMonths(data, months) {
+    return Math.trunc(data.sort((a,b)=> (b.Anno*12+b.Mese)-(a.Anno*12+a.Mese)).slice(0,months).reduce((acc,r)=>acc+r.V,0));
 }
 
-function createYearChart(data) {
-    const yearMap = {};
-    data.forEach(row => {
-        if (!yearMap[row.Anno]) yearMap[row.Anno] = 0;
-        yearMap[row.Anno] += row.V;
-    });
-
-    const ctx = document.getElementById('yearChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(yearMap),
-            datasets: [{
-                label: 'Differenza Entrate/Uscite per Anno',
-                data: Object.values(yearMap).map(v => Math.trunc(v)),
-                backgroundColor: Object.values(yearMap).map(v => v >=0 ? 'rgba(40,167,69,0.7)' : 'rgba(220,53,69,0.7)'),
-                borderColor: Object.values(yearMap).map(v => v>=0 ? 'rgba(40,167,69,1)' : 'rgba(220,53,69,1)'),
-                borderWidth: 1
-            }]
-        },
-        options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
-    });
+// --- Popolamento riepilogo ---
+function populateSummary(data) {
+    document.getElementById('sum3').textContent = formatNumber(sumLastMonths(data,3));
+    document.getElementById('sum6').textContent = formatNumber(sumLastMonths(data,6));
+    document.getElementById('sum12').textContent = formatNumber(sumLastMonths(data,12));
+    document.getElementById('sum36').textContent = formatNumber(sumLastMonths(data,36));
 }
 
-let monthChartInstance = null;
-function createMonthChart(data, months=12) {
-    const filtered = data.slice(0, months).sort((a,b) => (a.Anno - b.Anno) || (a.Mese - b.Mese));
-    const labels = filtered.map(row => `${row.DMese} ${row.Anno}`);
-    const values = filtered.map(row => Math.trunc(row.V));
-    const colors = filtered.map(row => row.V>=0?'rgba(40,167,69,0.7)':'rgba(220,53,69,0.7)');
-
-    const ctx = document.getElementById('monthChart').getContext('2d');
-    if(monthChartInstance) monthChartInstance.destroy();
-    monthChartInstance = new Chart(ctx, {
-        type:'bar',
-        data:{
-            labels:labels,
-            datasets:[{
-                label:'Differenza Entrate/Uscite',
-                data:values,
-                backgroundColor: colors,
-                borderColor: colors.map(c => c.replace('0.7','1')),
-                borderWidth:1
-            }]
-        },
-        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false}}}
+// --- Grafico Annuale ---
+let annualChart = new Chart(document.getElementById('annualChart'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{label:'Differenza V', data:[], backgroundColor: '#007bff'}] },
+    options: { responsive:true, scales:{y:{beginAtZero:true}} }
+});
+function updateAnnualChart(data) {
+    const grouped = {};
+    data.forEach(r => {
+        grouped[r.Anno] = (grouped[r.Anno] || 0) + r.V;
     });
+    const labels = Object.keys(grouped).sort();
+    annualChart.data.labels = labels;
+    annualChart.data.datasets[0].data = labels.map(l=>grouped[l]);
+    annualChart.update();
 }
 
-fetch(apiUrl)
-    .then(res => res.json())
-    .then(data => {
-        updateSummary(data);
-        populateTable(data);
-        createYearChart(data);
-        createMonthChart(data, 12);
+// --- Grafico Mensile con slider ---
+let monthlyChart = new Chart(document.getElementById('monthlyChart'), {
+    type: 'bar',
+    data: { labels: [], datasets: [{label:'Differenza V', data:[], backgroundColor: '#28a745'}] },
+    options: { responsive:true, scales:{y:{beginAtZero:true}} }
+});
 
-        const slider = document.getElementById("monthSlider");
-        const sliderValue = document.getElementById("sliderValue");
-        slider.addEventListener("input", () => {
-            sliderValue.textContent = slider.value;
-            createMonthChart(data, slider.value);
-        });
-    });
+const monthSlider = document.getElementById('monthSlider');
+const monthValue = document.getElementById('monthValue');
+monthSlider.addEventListener('input', ()=>{
+    const monthsToShow = parseInt(monthSlider.value);
+    monthValue.textContent = monthsToShow;
+    updateMonthlyChart(monthsToShow);
+});
+
+function updateMonthlyChart(months) {
+    const filtered = jsonData
+        .sort((a,b)=> (b.Anno*12+b.Mese)-(a.Anno*12+a.Mese))
+        .slice(0,months)
+        .reverse();
+    monthlyChart.data.labels = filtered.map(r=>`${r.DMese} ${r.Anno}`);
+    monthlyChart.data.datasets[0].data = filtered.map(r=>r.V);
+    monthlyChart.update();
+}
+
+// --- Inizializzazione ---
+function init() {
+    // Assicurati che jsonData contenga la risposta Azure
+    jsonData.sort((a,b)=> (b.Anno*12+b.Mese)-(a.Anno*12+a.Mese));
+    populateSummary(jsonData);
+    populateTable(jsonData);
+    updateAnnualChart(jsonData);
+    updateMonthlyChart(parseInt(monthSlider.value));
+}
+
+// Esegui init dopo aver impostato jsonData
+init();
 </script>
+
 </body>
 </html>
