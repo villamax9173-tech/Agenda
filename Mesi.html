@@ -1,139 +1,152 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <title>Agenda Villamax - Analisi EUD</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h1 { text-align: center; }
-        table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; }
-        th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-        th { background-color: #0078d7; color: white; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        canvas { background: #fff; padding: 20px; margin-bottom: 40px; }
-    </style>
+<meta charset="UTF-8">
+<title>Agenda Villamax - Analisi EUD</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    h1 { text-align: center; margin-bottom: 20px; color: #333; }
+    .summary { display: flex; justify-content: space-around; margin-bottom: 30px; }
+    .summary div { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; width: 22%; }
+    .summary div span { display: block; font-size: 24px; font-weight: 600; margin-top: 10px; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: 500; }
+    th { background-color: #0078d7; color: white; font-size: 16px; }
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    tr:hover { background-color: #e6f7ff; transition: background 0.3s; }
+    .positive { background-color: #d4edda !important; color: #155724; font-weight: 600; }
+    .negative { background-color: #f8d7da !important; color: #721c24; font-weight: 600; }
+    canvas { background: #fff; padding: 20px; margin-bottom: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+</style>
 </head>
 <body>
-    <h1>Analisi Entrate/Uscite</h1>
+<h1>Analisi Entrate/Uscite</h1>
 
-    <table id="eudTable">
-        <thead>
-            <tr>
-                <th>Anno</th>
-                <th>Mese</th>
-                <th>Entrate</th>
-                <th>Uscite</th>
-                <th>Differenza (V)</th>
-                <th>D</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
+<div class="summary" id="summaryBox">
+    <div>Ultimi 3 mesi<span id="sum3m">0</span></div>
+    <div>Ultimi 6 mesi<span id="sum6m">0</span></div>
+    <div>Ultimo anno<span id="sum12m">0</span></div>
+    <div>Ultimi 3 anni<span id="sum36m">0</span></div>
+</div>
 
-    <canvas id="yearChart" width="800" height="400"></canvas>
-    <canvas id="monthChart" width="800" height="400"></canvas>
+<table id="eudTable">
+    <thead>
+        <tr>
+            <th>Anno</th>
+            <th>Mese</th>
+            <th>Entrate</th>
+            <th>Uscite</th>
+            <th>Differenza (V)</th>
+            <th>D</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
 
-    <script>
-        const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+<canvas id="yearChart" width="800" height="400"></canvas>
+<canvas id="monthChart" width="800" height="400"></canvas>
 
-        async function fetchData() {
-            const res = await fetch(apiUrl);
-            const data = await res.json();
-            return data;
-        }
+<script>
+const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-        function populateTable(data) {
-            const tbody = document.querySelector("#eudTable tbody");
-            // Ordina per V decrescente
-            data.sort((a, b) => b.V - a.V);
+async function fetchData() {
+    const res = await fetch(apiUrl);
+    const data = await res.json();
+    return data;
+}
 
-            data.forEach(row => {
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row.Anno}</td>
-                    <td>${row.DMese}</td>
-                    <td>${row.Entrata ?? 0}</td>
-                    <td>${row.Uscita ?? 0}</td>
-                    <td>${row.V.toFixed(2)}</td>
-                    <td>${row.D}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+function populateTable(data) {
+    const tbody = document.querySelector("#eudTable tbody");
+    data.sort((a, b) => b.V - a.V);
 
-        function createYearChart(data) {
-            const yearMap = {};
-            data.forEach(row => {
-                if (!yearMap[row.Anno]) yearMap[row.Anno] = 0;
-                yearMap[row.Anno] += row.V;
-            });
+    data.forEach(row => {
+        const tr = document.createElement("tr");
+        tr.className = row.V >= 0 ? "positive" : "negative";
+        tr.innerHTML = `
+            <td>${row.Anno}</td>
+            <td>${row.DMese}</td>
+            <td>${Math.trunc(row.Entrata ?? 0)}</td>
+            <td>${Math.trunc(row.Uscita ?? 0)}</td>
+            <td>${Math.trunc(row.V)}</td>
+            <td>${row.D}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
-            const ctx = document.getElementById('yearChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(yearMap),
-                    datasets: [{
-                        label: 'Differenza Entrate/Uscite per Anno',
-                        data: Object.values(yearMap).map(v => v.toFixed(2)),
-                        backgroundColor: 'rgba(0, 123, 255, 0.7)',
-                        borderColor: 'rgba(0, 123, 255, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
-                }
-            });
-        }
+function updateSummary(data) {
+    // Ordina decrescente per anno/mese
+    const sorted = data.slice().sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
+    
+    const sumLastN = n => sorted.slice(0,n).reduce((acc, row) => acc + row.V, 0);
+    
+    document.getElementById("sum3m").textContent = Math.trunc(sumLastN(3));
+    document.getElementById("sum6m").textContent = Math.trunc(sumLastN(6));
+    document.getElementById("sum12m").textContent = Math.trunc(sumLastN(12));
+    document.getElementById("sum36m").textContent = Math.trunc(sumLastN(36));
+}
 
-        function createMonthChart(data) {
-            const monthMap = {};
-            const monthNames = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
+function createYearChart(data) {
+    const yearMap = {};
+    data.forEach(row => {
+        if (!yearMap[row.Anno]) yearMap[row.Anno] = 0;
+        yearMap[row.Anno] += row.V;
+    });
 
-            data.forEach(row => {
-                if (!monthMap[row.Mese]) monthMap[row.Mese] = 0;
-                monthMap[row.Mese] += row.V;
-            });
+    const ctx = document.getElementById('yearChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(yearMap),
+            datasets: [{
+                label: 'Differenza Entrate/Uscite per Anno',
+                data: Object.values(yearMap).map(v => Math.trunc(v)),
+                backgroundColor: Object.values(yearMap).map(v => v >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)'),
+                borderColor: Object.values(yearMap).map(v => v >= 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+}
 
-            const labels = Object.keys(monthMap).sort((a,b) => a-b).map(m => monthNames[m-1]);
-            const values = Object.keys(monthMap).sort((a,b) => a-b).map(m => monthMap[m].toFixed(2));
+function createMonthChart(data) {
+    const monthMap = {};
+    const monthNames = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
-            const ctx = document.getElementById('monthChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Differenza Entrate/Uscite per Mese (tutti gli anni)',
-                        data: values,
-                        fill: false,
-                        borderColor: 'rgba(220, 53, 69, 0.8)',
-                        tension: 0.3,
-                        pointBackgroundColor: 'rgba(220,53,69,1)'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: true } },
-                    scales: {
-                        y: { beginAtZero: false }
-                    }
-                }
-            });
-        }
+    data.forEach(row => {
+        if (!monthMap[row.Mese]) monthMap[row.Mese] = 0;
+        monthMap[row.Mese] += row.V;
+    });
 
-        // Main
-        fetchData().then(data => {
-            populateTable(data);
-            createYearChart(data);
-            createMonthChart(data);
-        });
-    </script>
+    const labels = Object.keys(monthMap).sort((a,b) => a-b).map(m => monthNames[m-1]);
+    const values = Object.keys(monthMap).sort((a,b) => a-b).map(m => Math.trunc(monthMap[m]));
+
+    const ctx = document.getElementById('monthChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Differenza Entrate/Uscite per Mese (tutti gli anni)',
+                data: values,
+                backgroundColor: values.map(v => v >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)'),
+                borderColor: values.map(v => v >= 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
+                borderWidth: 1
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
+    });
+}
+
+// Main
+fetchData().then(data => {
+    updateSummary(data);
+    populateTable(data);
+    createYearChart(data);
+    createMonthChart(data);
+});
+</script>
 </body>
 </html>
