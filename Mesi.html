@@ -17,6 +17,7 @@
     tr:hover { background-color: #e6f7ff; transition: background 0.3s; }
     .positive { background-color: #d4edda !important; color: #155724; font-weight: 600; }
     .negative { background-color: #f8d7da !important; color: #721c24; font-weight: 600; }
+    .icon { font-size: 18px; margin-right: 5px; }
     canvas { background: #fff; padding: 20px; margin-bottom: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
 </style>
 </head>
@@ -39,6 +40,7 @@
             <th>Uscite</th>
             <th>Differenza (V)</th>
             <th>D</th>
+            <th>Importanza</th>
         </tr>
     </thead>
     <tbody></tbody>
@@ -50,41 +52,55 @@
 <script>
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
+function formatNumber(n) {
+    return Math.trunc(n).toLocaleString('it-IT');
+}
+
 async function fetchData() {
     const res = await fetch(apiUrl);
     const data = await res.json();
     return data;
 }
 
+function calculateImportance(data) {
+    const totalAbs = data.reduce((acc, row) => acc + Math.abs(row.V), 0);
+    return data.map(row => {
+        const ratio = Math.abs(row.V) / totalAbs;
+        if (ratio > 0.15) return "★★★";
+        if (ratio > 0.05) return "★★";
+        return "★";
+    });
+}
+
 function populateTable(data) {
     const tbody = document.querySelector("#eudTable tbody");
-    data.sort((a, b) => b.V - a.V);
+    data.sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
 
-    data.forEach(row => {
+    const icons = calculateImportance(data);
+
+    data.forEach((row, i) => {
         const tr = document.createElement("tr");
         tr.className = row.V >= 0 ? "positive" : "negative";
         tr.innerHTML = `
             <td>${row.Anno}</td>
             <td>${row.DMese}</td>
-            <td>${Math.trunc(row.Entrata ?? 0)}</td>
-            <td>${Math.trunc(row.Uscita ?? 0)}</td>
-            <td>${Math.trunc(row.V)}</td>
+            <td>${formatNumber(row.Entrata ?? 0)}</td>
+            <td>${formatNumber(row.Uscita ?? 0)}</td>
+            <td>${formatNumber(row.V)}</td>
             <td>${row.D}</td>
+            <td><span class="icon">${icons[i]}</span></td>
         `;
         tbody.appendChild(tr);
     });
 }
 
 function updateSummary(data) {
-    // Ordina decrescente per anno/mese
     const sorted = data.slice().sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
-    
-    const sumLastN = n => sorted.slice(0,n).reduce((acc, row) => acc + row.V, 0);
-    
-    document.getElementById("sum3m").textContent = Math.trunc(sumLastN(3));
-    document.getElementById("sum6m").textContent = Math.trunc(sumLastN(6));
-    document.getElementById("sum12m").textContent = Math.trunc(sumLastN(12));
-    document.getElementById("sum36m").textContent = Math.trunc(sumLastN(36));
+    const sumLastN = n => sorted.slice(0,n).reduce((acc,row)=>acc+row.V,0);
+    document.getElementById("sum3m").textContent = formatNumber(sumLastN(3));
+    document.getElementById("sum6m").textContent = formatNumber(sumLastN(6));
+    document.getElementById("sum12m").textContent = formatNumber(sumLastN(12));
+    document.getElementById("sum36m").textContent = formatNumber(sumLastN(36));
 }
 
 function createYearChart(data) {
@@ -102,45 +118,50 @@ function createYearChart(data) {
             datasets: [{
                 label: 'Differenza Entrate/Uscite per Anno',
                 data: Object.values(yearMap).map(v => Math.trunc(v)),
-                backgroundColor: Object.values(yearMap).map(v => v >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)'),
-                borderColor: Object.values(yearMap).map(v => v >= 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
+                backgroundColor: Object.values(yearMap).map(v => v >=0 ? 'rgba(40,167,69,0.7)' : 'rgba(220,53,69,0.7)'),
+                borderColor: Object.values(yearMap).map(v => v>=0 ? 'rgba(40,167,69,1)' : 'rgba(220,53,69,1)'),
                 borderWidth: 1
             }]
         },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+        options: { responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true}} }
     });
 }
 
 function createMonthChart(data) {
+    const twoYearsAgo = new Date().getFullYear() - 2;
+    const filtered = data.filter(row => row.Anno >= twoYearsAgo);
+
     const monthMap = {};
     const monthNames = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
-    data.forEach(row => {
-        if (!monthMap[row.Mese]) monthMap[row.Mese] = 0;
-        monthMap[row.Mese] += row.V;
+    filtered.forEach(row => {
+        const key = `${row.Anno}-${row.Mese}`;
+        monthMap[key] = row.V;
     });
 
-    const labels = Object.keys(monthMap).sort((a,b) => a-b).map(m => monthNames[m-1]);
-    const values = Object.keys(monthMap).sort((a,b) => a-b).map(m => Math.trunc(monthMap[m]));
+    const labels = Object.keys(monthMap).sort().map(k => {
+        const [y,m] = k.split("-");
+        return `${monthNames[m-1]} ${y}`;
+    });
+    const values = Object.keys(monthMap).sort().map(k => Math.trunc(monthMap[k]));
 
     const ctx = document.getElementById('monthChart').getContext('2d');
     new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Differenza Entrate/Uscite per Mese (tutti gli anni)',
-                data: values,
-                backgroundColor: values.map(v => v >= 0 ? 'rgba(40, 167, 69, 0.7)' : 'rgba(220, 53, 69, 0.7)'),
-                borderColor: values.map(v => v >= 0 ? 'rgba(40, 167, 69, 1)' : 'rgba(220, 53, 69, 1)'),
-                borderWidth: 1
+        type:'bar',
+        data:{
+            labels:labels,
+            datasets:[{
+                label:'Differenza Entrate/Uscite ultimi 2 anni',
+                data:values,
+                backgroundColor: values.map(v => v>=0?'rgba(40,167,69,0.7)':'rgba(220,53,69,0.7)'),
+                borderColor: values.map(v => v>=0?'rgba(40,167,69,1)':'rgba(220,53,69,1)'),
+                borderWidth:1
             }]
         },
-        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false } } }
+        options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:false}}}
     });
 }
 
-// Main
 fetchData().then(data => {
     updateSummary(data);
     populateTable(data);
