@@ -7,19 +7,25 @@
 <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; }
     h1 { text-align: center; margin-bottom: 20px; color: #333; }
+
     .summary { display: flex; justify-content: space-around; margin-bottom: 30px; }
-    .summary div { background: #fff; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; width: 22%; }
-    .summary div span { display: block; font-size: 26px; font-weight: 700; margin-top: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
-    th, td { padding: 12px; text-align: center; font-weight: 500; }
-    th { background-color: #0078d7; color: #fff; font-size: 16px; }
+    .summary div { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; width: 22%; }
+    .summary div span { display: block; font-size: 24px; font-weight: 700; margin-top: 5px; }
+
+    .slider-container { width: 80%; margin: 0 auto 30px; text-align: center; }
+    .slider-container input { width: 60%; }
+
+    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); font-size: 14px; }
+    th, td { padding: 8px 12px; font-weight: 500; }
+    th { background-color: #0078d7; color: #fff; font-size: 14px; }
     tr:nth-child(even) { background-color: #f9f9f9; }
     tr:hover { background-color: #e6f7ff; transition: 0.3s; }
+    td.text-left { text-align: left; }
+    td.text-center { text-align: center; }
+    td.text-right { text-align: right; }
     .positive { color: #155724; font-weight: 600; }
     .negative { color: #721c24; font-weight: 600; }
-    .importance { display: inline-block; border-radius: 50%; }
-    .slider-container { width: 80%; margin: 0 auto 40px; text-align: center; }
-    .slider-container input { width: 60%; }
+    .importance { display: inline-block; border-radius: 50%; vertical-align: middle; }
     canvas { background: #fff; padding: 20px; margin-bottom: 40px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
 </style>
 </head>
@@ -60,13 +66,7 @@
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 function formatNumber(n) {
-    return Math.trunc(n).toLocaleString('it-IT');
-}
-
-async function fetchData() {
-    const res = await fetch(apiUrl);
-    const data = await res.json();
-    return data;
+    return Math.trunc(n).toLocaleString('it-IT'); // separatore di migliaia, solo parte intera
 }
 
 function calculateImportance(data) {
@@ -90,13 +90,13 @@ function populateTable(data) {
         const tr = document.createElement("tr");
         tr.className = row.V >= 0 ? "positive" : "negative";
         tr.innerHTML = `
-            <td>${row.Anno}</td>
-            <td>${row.DMese}</td>
-            <td>${formatNumber(row.Entrata ?? 0)}</td>
-            <td>${formatNumber(row.Uscita ?? 0)}</td>
-            <td>${formatNumber(row.V)}</td>
-            <td>${row.D}</td>
-            <td>${icons[i]}</td>
+            <td class="text-center">${row.Anno}</td>
+            <td class="text-left">${row.DMese}</td>
+            <td class="text-right">${row.Entrata != null ? formatNumber(row.Entrata) : '-'}</td>
+            <td class="text-right">${row.Uscita != null ? formatNumber(row.Uscita) : '-'}</td>
+            <td class="text-right">${formatNumber(row.V)}</td>
+            <td class="text-center">${row.D}</td>
+            <td class="text-center">${icons[i]}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -160,19 +160,21 @@ function createMonthChart(data, months=12) {
     });
 }
 
-fetchData().then(data => {
-    updateSummary(data);
-    populateTable(data);
-    createYearChart(data);
-    createMonthChart(data, 12);
+fetch(apiUrl)
+    .then(res => res.json())
+    .then(data => {
+        updateSummary(data);
+        populateTable(data);
+        createYearChart(data);
+        createMonthChart(data, 12);
 
-    const slider = document.getElementById("monthSlider");
-    const sliderValue = document.getElementById("sliderValue");
-    slider.addEventListener("input", () => {
-        sliderValue.textContent = slider.value;
-        createMonthChart(data, slider.value);
+        const slider = document.getElementById("monthSlider");
+        const sliderValue = document.getElementById("sliderValue");
+        slider.addEventListener("input", () => {
+            sliderValue.textContent = slider.value;
+            createMonthChart(data, slider.value);
+        });
     });
-});
 </script>
 </body>
 </html>
