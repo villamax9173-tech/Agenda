@@ -5,20 +5,28 @@
 <title>Agenda Villamax - Analisi EUD</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; background-color: #f0f2f5; }
     h1 { text-align: center; margin-bottom: 20px; color: #333; }
+
     .summary { display: flex; justify-content: space-around; margin-bottom: 30px; }
-    .summary div { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; width: 22%; }
-    .summary div span { display: block; font-size: 24px; font-weight: 600; margin-top: 10px; }
-    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    th, td { border: 1px solid #ccc; padding: 10px; text-align: center; font-weight: 500; }
-    th { background-color: #0078d7; color: white; font-size: 16px; }
+    .summary div { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; width: 22%; }
+    .summary div span { display: block; font-size: 24px; font-weight: 700; margin-top: 5px; }
+
+    .slider-container { width: 80%; margin: 0 auto 30px; text-align: center; }
+    .slider-container input { width: 60%; }
+
+    table { border-collapse: collapse; width: 100%; margin-bottom: 40px; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1); font-size: 14px; }
+    th, td { padding: 8px 12px; font-weight: 500; }
+    th { background-color: #0078d7; color: #fff; font-size: 14px; }
     tr:nth-child(even) { background-color: #f9f9f9; }
-    tr:hover { background-color: #e6f7ff; transition: background 0.3s; }
-    .positive { background-color: #d4edda !important; color: #155724; font-weight: 600; }
-    .negative { background-color: #f8d7da !important; color: #721c24; font-weight: 600; }
-    .icon { font-size: 18px; margin-right: 5px; }
-    canvas { background: #fff; padding: 20px; margin-bottom: 40px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    tr:hover { background-color: #e6f7ff; transition: 0.3s; }
+    td.text-left { text-align: left; }
+    td.text-center { text-align: center; }
+    td.text-right { text-align: right; }
+    .positive { color: #155724; font-weight: 600; }
+    .negative { color: #721c24; font-weight: 600; }
+    .importance { display: inline-block; border-radius: 50%; vertical-align: middle; }
+    canvas { background: #fff; padding: 20px; margin-bottom: 40px; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
 </style>
 </head>
 <body>
@@ -29,6 +37,11 @@
     <div>Ultimi 6 mesi<span id="sum6m">0</span></div>
     <div>Ultimo anno<span id="sum12m">0</span></div>
     <div>Ultimi 3 anni<span id="sum36m">0</span></div>
+</div>
+
+<div class="slider-container">
+    <label for="monthSlider">Seleziona numero di mesi da visualizzare: <span id="sliderValue">12</span></label><br>
+    <input type="range" id="monthSlider" min="6" max="24" step="1" value="12">
 </div>
 
 <table id="eudTable">
@@ -53,27 +66,40 @@
 const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/Geteudquery?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 function formatNumber(n) {
-    return Math.trunc(n).toLocaleString('it-IT');
+    if (n == null) return '-';
+    
+    let isNegative = n < 0;
+    let num = Math.trunc(Math.abs(n)); // parte intera positiva
+    let str = num.toString();
+    
+    // inserimento manuale dei punti ogni 3 cifre
+    let result = '';
+    while (str.length > 3) {
+        result = '.' + str.slice(-3) + result;
+        str = str.slice(0, -3);
+    }
+    result = str + result;
+    
+    if (isNegative) result = '-' + result;
+    
+    // controllo finale: se nella stringa ci fossero doppio punto, lo corregge
+    if (result.includes('..')) result = result.replace('..','.');
+    
+    return result;
 }
-
-async function fetchData() {
-    const res = await fetch(apiUrl);
-    const data = await res.json();
-    return data;
-}
-
 function calculateImportance(data) {
     const totalAbs = data.reduce((acc, row) => acc + Math.abs(row.V), 0);
     return data.map(row => {
         const ratio = Math.abs(row.V) / totalAbs;
-        if (ratio > 0.15) return "★★★";
-        if (ratio > 0.05) return "★★";
-        return "★";
+        let size = Math.min(15 + ratio*50, 50); // dimensione proporzionale
+        let color = row.V >=0 ? '#28a745' : '#dc3545';
+        return `<span class="importance" style="width:${size}px; height:${size}px; background-color:${color};"></span>`;
     });
 }
 
 function populateTable(data) {
     const tbody = document.querySelector("#eudTable tbody");
+    tbody.innerHTML = "";
     data.sort((a,b) => (b.Anno - a.Anno) || (b.Mese - a.Mese));
 
     const icons = calculateImportance(data);
@@ -82,13 +108,13 @@ function populateTable(data) {
         const tr = document.createElement("tr");
         tr.className = row.V >= 0 ? "positive" : "negative";
         tr.innerHTML = `
-            <td>${row.Anno}</td>
-            <td>${row.DMese}</td>
-            <td>${formatNumber(row.Entrata ?? 0)}</td>
-            <td>${formatNumber(row.Uscita ?? 0)}</td>
-            <td>${formatNumber(row.V)}</td>
-            <td>${row.D}</td>
-            <td><span class="icon">${icons[i]}</span></td>
+<td class="text-center">${row.Anno}</td>
+    <td class="text-left">${row.DMese}</td>
+    <td class="text-right">${formatNumber(row.ImpA)}</td>
+    <td class="text-right">${formatNumber(row.ImpD)}</td>
+    <td class="text-right">${formatNumber(row.V)}</td>
+    <td class="text-center">${row.D}</td>
+    <td class="text-center">${icons[i]}</td>
         `;
         tbody.appendChild(tr);
     });
@@ -127,34 +153,24 @@ function createYearChart(data) {
     });
 }
 
-function createMonthChart(data) {
-    const twoYearsAgo = new Date().getFullYear() - 2;
-    const filtered = data.filter(row => row.Anno >= twoYearsAgo);
-
-    const monthMap = {};
-    const monthNames = ["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
-
-    filtered.forEach(row => {
-        const key = `${row.Anno}-${row.Mese}`;
-        monthMap[key] = row.V;
-    });
-
-    const labels = Object.keys(monthMap).sort().map(k => {
-        const [y,m] = k.split("-");
-        return `${monthNames[m-1]} ${y}`;
-    });
-    const values = Object.keys(monthMap).sort().map(k => Math.trunc(monthMap[k]));
+let monthChartInstance = null;
+function createMonthChart(data, months=12) {
+    const filtered = data.slice(0, months).sort((a,b) => (a.Anno - b.Anno) || (a.Mese - b.Mese));
+    const labels = filtered.map(row => `${row.DMese} ${row.Anno}`);
+    const values = filtered.map(row => Math.trunc(row.V));
+    const colors = filtered.map(row => row.V>=0?'rgba(40,167,69,0.7)':'rgba(220,53,69,0.7)');
 
     const ctx = document.getElementById('monthChart').getContext('2d');
-    new Chart(ctx, {
+    if(monthChartInstance) monthChartInstance.destroy();
+    monthChartInstance = new Chart(ctx, {
         type:'bar',
         data:{
             labels:labels,
             datasets:[{
-                label:'Differenza Entrate/Uscite ultimi 2 anni',
+                label:'Differenza Entrate/Uscite',
                 data:values,
-                backgroundColor: values.map(v => v>=0?'rgba(40,167,69,0.7)':'rgba(220,53,69,0.7)'),
-                borderColor: values.map(v => v>=0?'rgba(40,167,69,1)':'rgba(220,53,69,1)'),
+                backgroundColor: colors,
+                borderColor: colors.map(c => c.replace('0.7','1')),
                 borderWidth:1
             }]
         },
@@ -162,12 +178,21 @@ function createMonthChart(data) {
     });
 }
 
-fetchData().then(data => {
-    updateSummary(data);
-    populateTable(data);
-    createYearChart(data);
-    createMonthChart(data);
-});
+fetch(apiUrl)
+    .then(res => res.json())
+    .then(data => {
+        updateSummary(data);
+        populateTable(data);
+        createYearChart(data);
+        createMonthChart(data, 12);
+
+        const slider = document.getElementById("monthSlider");
+        const sliderValue = document.getElementById("sliderValue");
+        slider.addEventListener("input", () => {
+            sliderValue.textContent = slider.value;
+            createMonthChart(data, slider.value);
+        });
+    });
 </script>
 </body>
 </html>
