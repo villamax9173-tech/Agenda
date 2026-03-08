@@ -42,6 +42,10 @@
         .value {
             color: #222;
         }
+
+        .highlight {
+            background-color: #fff3cd; /* leggero giallo per evidenziare il saldo fine mese */
+        }
     </style>
 </head>
 <body>
@@ -67,6 +71,9 @@
                 const container = document.getElementById("etichettaContainer");
                 container.innerHTML = "";
 
+                let saldo = 0;
+                let guadagno = 0;
+
                 data.forEach(item => {
                     const div = document.createElement("div");
                     div.className = "item";
@@ -78,12 +85,25 @@
                     if (labelText === "BitCoin Portafoglio") {
                         valoreText = item.Valore ?? item.valore ?? "-";
                     } else {
-                        valoreText = formatEuro(item.Valore ?? item.valore ?? "-");
+                        const valNum = parseFloat(item.Valore ?? item.valore ?? 0);
+                        valoreText = formatEuro(valNum);
+
+                        // Salvo Saldo e Guadagno per il calcolo
+                        if (labelText === "Saldo") saldo = valNum;
+                        if (labelText === "Guadagno") guadagno = valNum;
                     }
 
                     div.innerHTML = `<span class="label">${labelText}</span> <span class="value">${valoreText}</span>`;
                     container.appendChild(div);
                 });
+
+                // Aggiungo la voce "Saldo fine Mese"
+                const divFineMese = document.createElement("div");
+                divFineMese.className = "item highlight";
+                const saldoFineMese = saldo + guadagno;
+                divFineMese.innerHTML = `<span class="label">Saldo fine Mese</span> <span class="value">${formatEuro(saldoFineMese)}</span>`;
+                container.appendChild(divFineMese);
+
             } catch (error) {
                 console.error("Errore nel caricamento delle etichette:", error);
             }
