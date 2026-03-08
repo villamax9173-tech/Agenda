@@ -52,19 +52,22 @@
                 container.innerHTML = ""; // pulisco eventuali dati
 
                 data.forEach(item => {
-                    const div = document.createElement("div");
-                    div.className = "item";
+    const div = document.createElement("div");
+    div.className = "item";
 
-                    const label = document.createElement("div");
-                    label.innerHTML = `<span class="label">Etichetta:</span> <span class="value">${item.etichetta}</span>`;
-                    div.appendChild(label);
+    const label = document.createElement("div");
+    label.innerHTML = `<span class="label">Etichetta:</span> <span class="value">${item.etichetta}</span>`;
+    div.appendChild(label);
 
-                    const valore = document.createElement("div");
-                    valore.innerHTML = `<span class="label">Valore:</span> <span class="value">${item.valore !== null ? item.valore.toFixed(2) : "-"}</span>`;
-                    div.appendChild(valore);
+    const valoreNum = parseFloat(item.valore); // converte in numero
+    const valoreDisplay = !isNaN(valoreNum) ? valoreNum.toFixed(2) : "-";
 
-                    container.appendChild(div);
-                });
+    const valore = document.createElement("div");
+    valore.innerHTML = `<span class="label">Valore:</span> <span class="value">${valoreDisplay}</span>`;
+    div.appendChild(valore);
+
+    container.appendChild(div);
+});
             } catch (error) {
                 console.error("Errore nel caricamento delle etichette:", error);
             }
