@@ -89,7 +89,7 @@ cursor:pointer;
 background:#fff0f0;
 }
 
-.popup{
+  .popup{
 position:fixed;
 top:0;
 left:0;
@@ -100,24 +100,67 @@ display:none;
 align-items:center;
 justify-content:center;
 }
-
+  
 .popupContent{
-background:white;
-padding:20px;
-border-radius:8px;
-width:300px;
+  background: linear-gradient(135deg, #ffffff, #e6f2ff);
+  padding: 20px;
+  border-radius: 12px;
+  width: 320px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  text-align: center;
 }
 
 .popupContent input{
-width:100%;
-margin-bottom:10px;
-padding:5px;
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
 }
 
-.popupContent button{
-padding:8px 12px;
+.popupButtons{
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
 }
 
+.popupButtons button{
+  flex: 1;
+  padding: 8px 0;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btnSalva{
+  background-color: #28a745;
+  color: white;
+}
+
+.btnSalva:hover{
+  background-color: #218838;
+}
+
+.btnAnnulla{
+  background-color: #6c757d;
+  color: white;
+}
+
+.btnAnnulla:hover{
+  background-color: #5a6268;
+}
+
+.btnAzzera{
+  background-color: #dc3545;
+  color: white;
+}
+
+.btnAzzera:hover{
+  background-color: #c82333;
+}
 .weekend{
 background:#fff3cd;
 font-weight:bold;
@@ -176,15 +219,18 @@ color:#333;
 
 <div class="popup" id="popup">
 
-<div class="popupContent">
+  <div class="popupContent">
+    <h3 id="titoloPopup"></h3>
 
-<h3 id="titoloPopup"></h3>
+    <input id="valoreInput" placeholder="Valore">
+    <input id="descInput" placeholder="Descrizione">
 
-<input id="valoreInput" placeholder="Valore">
-<input id="descInput" placeholder="Descrizione">
-
-<button onclick="salva()">Salva</button>
-<button onclick="chiudi()">Annulla</button>
+    <div class="popupButtons">
+      <button class="btnSalva" onclick="salva()">Salva</button>
+      <button class="btnAnnulla" onclick="chiudi()">Annulla</button>
+      <button class="btnAzzera" onclick="azzera()">Azzera</button>
+    </div>
+  </div>
 
 </div>
 
@@ -428,6 +474,13 @@ document.getElementById("popup").style.display="none"
 
 }
 
+    function azzera(){
+  document.getElementById("valoreInput").value = 0;
+  document.getElementById("descInput").value = "-";
+  salva(); // chiama la funzione salva() subito dopo aver azzerato
+}
+
+    
 async function salva(){
 
 const valore=document.getElementById("valoreInput").value
