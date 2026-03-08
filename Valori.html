@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Etichette Villamax</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .item {
+            background-color: #fff;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        .item span.label {
+            font-weight: bold;
+        }
+
+        .item span.value {
+            margin-left: 10px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>Elenco Etichette</h1>
+    <div id="etichettaContainer">
+        <!-- I dati verranno inseriti qui -->
+    </div>
+
+    <script>
+        const apiUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEtichette?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+        async function loadEtichette() {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+
+                const container = document.getElementById("etichettaContainer");
+                container.innerHTML = ""; // pulisco eventuali dati
+
+                data.forEach(item => {
+                    const div = document.createElement("div");
+                    div.className = "item";
+
+                    const label = document.createElement("div");
+                    label.innerHTML = `<span class="label">Etichetta:</span> <span class="value">${item.etichetta}</span>`;
+                    div.appendChild(label);
+
+                    const valore = document.createElement("div");
+                    valore.innerHTML = `<span class="label">Valore:</span> <span class="value">${item.valore !== null ? item.valore.toFixed(2) : "-"}</span>`;
+                    div.appendChild(valore);
+
+                    container.appendChild(div);
+                });
+            } catch (error) {
+                console.error("Errore nel caricamento delle etichette:", error);
+            }
+        }
+
+        // Carica i dati al caricamento della pagina
+        loadEtichette();
+    </script>
+</body>
+</html>
