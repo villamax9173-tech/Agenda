@@ -6,7 +6,7 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-color: #f7f7f7;
+            background-color: #f0f0f5;
             color: #333;
             padding: 40px;
         }
@@ -14,23 +14,33 @@
         h1 {
             text-align: center;
             margin-bottom: 30px;
+            color: #4CAF50;
         }
 
         .item {
-            background-color: #fff;
+            background-color: #ffffff;
             padding: 15px 20px;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
             border-radius: 8px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            transition: transform 0.2s;
         }
 
-        .item span.label {
+        .item:hover {
+            transform: scale(1.02);
+            background-color: #e8f5e9;
+        }
+
+        .label {
             font-weight: bold;
+            color: #555;
         }
 
-        .item span.value {
-            margin-left: 10px;
-            color: #555;
+        .value {
+            color: #222;
         }
     </style>
 </head>
@@ -54,18 +64,14 @@
                 data.forEach(item => {
                     const div = document.createElement("div");
                     div.className = "item";
-                
-                    const label = document.createElement("div");
-                    label.innerHTML = `<span class="label">Etichetta:</span> <span class="value">${item.Etichetta ?? "-"}</span>`;
-                    div.appendChild(label);
-                
-                    const valoreNum = parseFloat(item.Valore);
-                    const valoreDisplay = !isNaN(valoreNum) ? valoreNum.toFixed(2) : "-";
-                
-                    const valore = document.createElement("div");
-                    valore.innerHTML = `<span class="label">Valore:</span> <span class="value">${valoreDisplay}</span>`;
-                    div.appendChild(valore);
-                
+
+                    // Controllo nome proprietà, maiuscole/minuscole
+                    const labelText = item.Etichetta ?? item.etichetta ?? "-";
+                    const valoreText = item.Valore ?? item.valore ?? "-";
+
+                    // Inserisco i dati direttamente
+                    div.innerHTML = `<span class="label">${labelText}</span> <span class="value">${valoreText}</span>`;
+
                     container.appendChild(div);
                 });
             } catch (error) {
@@ -73,7 +79,6 @@
             }
         }
 
-        // Carica i dati al caricamento della pagina
         loadEtichette();
     </script>
 </body>
