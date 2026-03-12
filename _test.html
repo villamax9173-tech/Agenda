@@ -7,7 +7,38 @@
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<style>
 
+.topmenu{
+background:#1a73e8;
+padding:0;
+display:flex;
+align-items:center;
+height:48px;
+box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+
+.topmenu a{
+color:white;
+text-decoration:none;
+padding:14px 20px;
+font-size:14px;
+font-weight:500;
+transition:background 0.2s;
+}
+
+.topmenu a:hover{
+background:#1558b0;
+}
+
+.topmenu .menu-title{
+font-weight:600;
+margin-right:20px;
+padding-left:15px;
+opacity:0.9;
+}
+
+</style>
 <style>
 
 body{
@@ -159,7 +190,19 @@ opacity:0;
 </head>
 
 <body>
+<div class="topmenu">
 
+<div class="menu-title">Villamax</div>
+
+<a href="agenda.html">Agenda</a>
+
+<a href="v-analisi.html">Analisi</a>
+
+<a href="v-analisi-next.html">Analisi Next</a>
+
+<a href="mesi.html">Mesi</a>
+
+</div>
 <h2>Agenda Villamax</h2>
 
 <div id="filters">
