@@ -1,0 +1,28 @@
+.topmenu{
+background:#1a73e8;
+height:48px;
+display:flex;
+align-items:center;
+box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+
+.topmenu a{
+color:white;
+text-decoration:none;
+padding:14px 20px;
+font-size:14px;
+font-weight:500;
+transition:background 0.2s;
+}
+
+.topmenu a:hover{
+background:#1558b0;
+}
+
+.menu-title{
+color:white;
+font-weight:600;
+margin-right:20px;
+padding-left:15px;
+opacity:0.9;
+}
