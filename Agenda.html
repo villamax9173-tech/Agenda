@@ -42,7 +42,35 @@ font-size:12px;
 cursor:pointer;
 }
 
-/* FILTRI */
+/* header giorni */
+
+.fc-col-header-cell{
+background:#1a73e8 !important;
+color:white !important;
+font-weight:600;
+text-transform:uppercase;
+padding:10px 0;
+}
+
+.fc-col-header-cell.fc-day-sat{
+background:#1565c0 !important;
+}
+
+.fc-col-header-cell.fc-day-sun{
+background:#b71c1c !important;
+}
+
+/* weekend */
+
+.fc-day-sat{
+background:#f1f8ff;
+}
+
+.fc-day-sun{
+background:#fff4f4;
+}
+
+/* filtri */
 
 #filters{
 max-width:1400px;
@@ -66,7 +94,7 @@ color:white;
 border:none;
 }
 
-/* MODAL */
+/* modal */
 
 .modal{
 display:none;
@@ -142,6 +170,7 @@ opacity:0;
 <div class="filter-btn" data-type="C">C</div>
 <div class="filter-btn" data-type="A">A</div>
 <div class="filter-btn" data-type="L">L</div>
+<div class="filter-btn" data-type="B">B</div>
 </div>
 
 <div id="calendar"></div>
@@ -156,13 +185,52 @@ opacity:0;
 <input id="evTitle" placeholder="Titolo">
 
 <select id="evTipo">
-<option value="P">P</option>
-<option value="S">S</option>
-<option value="M">M</option>
-<option value="C">C</option>
-<option value="A">A</option>
-<option value="L">L</option>
+<option value="M">Memo</option>
+<option value="L">Lavoro</option>
+<option selected value="P">Pagare</option>
+<option value="A">Amici</option>
+<option value="S">Salute</option>
+<option value="C">Cinema</option>
+<option value="B">Compleanno</option>
 </select>
+
+<div style="display:flex;gap:10px">
+
+<select id="evOra">
+<option value="0">00</option>
+<option value="1">01</option>
+<option value="2">02</option>
+<option value="3">03</option>
+<option value="4">04</option>
+<option value="5">05</option>
+<option value="6">06</option>
+<option value="7">07</option>
+<option value="8">08</option>
+<option value="9">09</option>
+<option value="10">10</option>
+<option value="11">11</option>
+<option value="12">12</option>
+<option value="13">13</option>
+<option value="14">14</option>
+<option value="15">15</option>
+<option value="16">16</option>
+<option value="17">17</option>
+<option value="18">18</option>
+<option value="19">19</option>
+<option value="20">20</option>
+<option value="21">21</option>
+<option value="22">22</option>
+<option value="23">23</option>
+</select>
+
+<select id="evMin">
+<option value="0">00</option>
+<option value="15">15</option>
+<option value="30">30</option>
+<option value="45">45</option>
+</select>
+
+</div>
 
 <textarea id="evDesc" placeholder="Descrizione"></textarea>
 
@@ -186,7 +254,15 @@ let currentId=null;
 let currentDate=null;
 let filter="ALL";
 
-const tooltip=document.getElementById("tooltip");
+const iconMap={
+P:"💰",
+S:"🏥",
+M:"📝",
+C:"🎬",
+A:"👥",
+L:"💼",
+B:"🎂"
+};
 
 const calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
 
@@ -204,12 +280,9 @@ right:'dayGridMonth,timeGridWeek,timeGridDay'
 events:loadEvents,
 
 dateClick:function(info){
-
 currentId=null;
 currentDate=info.date;
-
-openModal("", "P", "");
-
+openModal("", "P", "",0,0);
 },
 
 eventClick:function(info){
@@ -220,30 +293,10 @@ currentDate=info.event.start;
 openModal(
 info.event.title,
 info.event.extendedProps.tipo,
-info.event.extendedProps.desc
+info.event.extendedProps.desc,
+info.event.start.getHours(),
+info.event.start.getMinutes()
 );
-
-},
-
-eventMouseEnter:function(info){
-
-tooltip.innerHTML="<b>"+info.event.title+"</b>";
-tooltip.style.opacity=1;
-
-},
-
-eventMouseLeave:function(){
-tooltip.style.opacity=0;
-},
-
-eventDidMount:function(info){
-
-info.el.addEventListener("mousemove",function(e){
-
-tooltip.style.left=(e.pageX+10)+"px";
-tooltip.style.top=(e.pageY+10)+"px";
-
-});
 
 }
 
@@ -255,22 +308,33 @@ async function loadEvents(fetchInfo,successCallback){
 
 const res=await axios.get(`${API_BASE}/GetEvents?code=${API_KEY}`);
 
-const today=new Date();
-today.setHours(0,0,0,0);
-
 const events=res.data
 .filter(e=> filter==="ALL" || e.tipo===filter)
 .map(e=>{
 
 const d=e.data.toString();
 
-const startDate=new Date(
+let startDate;
+
+if(e.tipo==="B" || (e.ora==0 && e.minuti==0)){
+
+startDate=new Date(
+d.substring(0,4),
+d.substring(4,6)-1,
+d.substring(6,8)
+);
+
+}else{
+
+startDate=new Date(
 d.substring(0,4),
 d.substring(4,6)-1,
 d.substring(6,8),
 e.ora||0,
 e.minuti||0
 );
+
+}
 
 let color="#4285F4";
 
@@ -280,11 +344,12 @@ if(e.tipo==="M") color="#8AB4F8";
 if(e.tipo==="C") color="#FDD663";
 if(e.tipo==="A") color="#137333";
 if(e.tipo==="L") color="#FB8C00";
+if(e.tipo==="B") color="#ff66c4";
 
-if(startDate<today) color="#9aa0a6";
+const icon=iconMap[e.tipo]||"";
 
 return{
-title:e.desc_breve,
+title:icon+" "+e.desc_breve,
 start:startDate,
 backgroundColor:color,
 borderColor:color,
@@ -302,20 +367,21 @@ successCallback(events);
 
 }
 
-function openModal(title,tipo,desc){
+function openModal(title,tipo,desc,ora,minuti){
 
 document.getElementById("evTitle").value=title;
 document.getElementById("evTipo").value=tipo;
 document.getElementById("evDesc").value=desc;
+
+document.getElementById("evOra").value=ora;
+document.getElementById("evMin").value=minuti;
 
 document.getElementById("eventModal").style.display="block";
 
 }
 
 document.getElementById("closeModal").onclick=function(){
-
 document.getElementById("eventModal").style.display="none";
-
 }
 
 document.getElementById("saveEvent").onclick=async function(){
@@ -324,27 +390,19 @@ const titolo=document.getElementById("evTitle").value;
 const tipo=document.getElementById("evTipo").value;
 const desc=document.getElementById("evDesc").value;
 
-if(currentId==null){
+const ora=parseInt(document.getElementById("evOra").value);
+const minuti=parseInt(document.getElementById("evMin").value);
 
 await axios.post(`${API_BASE}/InsertEvent?code=${API_KEY}`,{
 data:formatDateToInt(currentDate),
-ora:0,
-minuti:0,
+ora:ora,
+minuti:minuti,
 tipo:tipo,
 durata_ore:0,
 durata_minuti:0,
 desc_breve:titolo,
 descrizione:desc
 });
-
-}else{
-
-await axios.put(`${API_BASE}/UpdateEvent?code=${API_KEY}`,{
-id:currentId,
-desc_breve:titolo
-});
-
-}
 
 calendar.refetchEvents();
 
@@ -396,7 +454,6 @@ return parseInt(`${y}${m}${d}`);
 }
 
 });
-
 </script>
 
 </body>
