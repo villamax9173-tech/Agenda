@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <link rel="stylesheet" href="menu.css">
 <meta charset="utf-8"/>
 <title>Agenda Villamax</title>
 
@@ -159,7 +160,7 @@ opacity:0;
 </head>
 
 <body>
-
+<div id="menu-container"></div>
 <h2>Agenda Villamax</h2>
 
 <div id="filters">
@@ -242,7 +243,15 @@ opacity:0;
 
 </div>
 </div>
+<script>
 
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
+
+</script>
 <script>
 
 document.addEventListener('DOMContentLoaded',function(){
