@@ -42,16 +42,26 @@ font-size:12px;
 cursor:pointer;
 }
 
-/* intestazione giorni */
+/* header giorni */
+
 .fc-col-header-cell{
-background:#1a73e8;
-color:white;
+background:#1a73e8 !important;
+color:white !important;
 font-weight:600;
 text-transform:uppercase;
 padding:10px 0;
 }
 
+.fc-col-header-cell.fc-day-sat{
+background:#1565c0 !important;
+}
+
+.fc-col-header-cell.fc-day-sun{
+background:#b71c1c !important;
+}
+
 /* weekend */
+
 .fc-day-sat{
 background:#f1f8ff;
 }
@@ -61,6 +71,7 @@ background:#fff4f4;
 }
 
 /* filtri */
+
 #filters{
 max-width:1400px;
 margin:20px auto;
@@ -84,6 +95,7 @@ border:none;
 }
 
 /* modal */
+
 .modal{
 display:none;
 position:fixed;
@@ -242,6 +254,15 @@ let filter="ALL";
 
 const tooltip=document.getElementById("tooltip");
 
+const iconMap={
+P:"💰",
+S:"🏥",
+M:"📝",
+C:"🎬",
+A:"👥",
+L:"💼"
+};
+
 const calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
 
 initialView:'dayGridMonth',
@@ -276,22 +297,6 @@ info.event.start.getHours(),
 info.event.start.getMinutes()
 );
 
-},
-
-eventMouseEnter:function(info){
-tooltip.innerHTML="<b>"+info.event.title+"</b>";
-tooltip.style.opacity=1;
-},
-
-eventMouseLeave:function(){
-tooltip.style.opacity=0;
-},
-
-eventDidMount:function(info){
-info.el.addEventListener("mousemove",function(e){
-tooltip.style.left=(e.pageX+10)+"px";
-tooltip.style.top=(e.pageY+10)+"px";
-});
 }
 
 });
@@ -302,22 +307,31 @@ async function loadEvents(fetchInfo,successCallback){
 
 const res=await axios.get(`${API_BASE}/GetEvents?code=${API_KEY}`);
 
-const today=new Date();
-today.setHours(0,0,0,0);
-
-const events=res.data
-.filter(e=> filter==="ALL" || e.tipo===filter)
-.map(e=>{
+const events=res.data.map(e=>{
 
 const d=e.data.toString();
 
-const startDate=new Date(
+let startDate;
+
+if(e.ora==0 && e.minuti==0){
+
+startDate=new Date(
+d.substring(0,4),
+d.substring(4,6)-1,
+d.substring(6,8)
+);
+
+}else{
+
+startDate=new Date(
 d.substring(0,4),
 d.substring(4,6)-1,
 d.substring(6,8),
 e.ora||0,
 e.minuti||0
 );
+
+}
 
 let color="#4285F4";
 
@@ -328,14 +342,10 @@ if(e.tipo==="C") color="#FDD663";
 if(e.tipo==="A") color="#137333";
 if(e.tipo==="L") color="#FB8C00";
 
-if(startDate<today) color="#9aa0a6";
-
-const ora=(e.ora!=null)
-?String(e.ora).padStart(2,'0')+":"+String(e.minuti).padStart(2,'0')+" "
-:"";
+const icon=iconMap[e.tipo]||"";
 
 return{
-title:ora+e.desc_breve,
+title:icon+" "+e.desc_breve,
 start:startDate,
 backgroundColor:color,
 borderColor:color,
