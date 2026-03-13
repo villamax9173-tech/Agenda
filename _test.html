@@ -1,301 +1,260 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 <head>
-<meta charset="utf-8"/>
-<title>Agenda Villamax</title>
+<link rel="stylesheet" href="menu.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<style>
+<title>Wanalis</title>
 
-.topmenu{
-background:#1a73e8;
-padding:0;
-display:flex;
-align-items:center;
-height:48px;
-box-shadow:0 2px 6px rgba(0,0,0,0.15);
-}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-.topmenu a{
-color:white;
-text-decoration:none;
-padding:14px 20px;
-font-size:14px;
-font-weight:500;
-transition:background 0.2s;
-}
-
-.topmenu a:hover{
-background:#1558b0;
-}
-
-.topmenu .menu-title{
-font-weight:600;
-margin-right:20px;
-padding-left:15px;
-opacity:0.9;
-}
-
-</style>
 <style>
 
 body{
-margin:0;
-font-family:'Segoe UI',Roboto,Arial;
-background:#f1f3f4;
+font-family:Arial;
+margin:20px;
+background:#f7f7f7;
 }
 
-h2{
-padding:20px;
-margin:0;
-background:white;
-border-bottom:1px solid #e0e0e0;
+h1{
+text-align:center;
 }
 
-#calendar{
-max-width:1400px;
-margin:30px auto;
-background:white;
-padding:20px;
-border-radius:12px;
-box-shadow:0 4px 18px rgba(0,0,0,0.08);
-}
-
-.fc-daygrid-event-dot{display:none!important;}
-
-.fc-event{
-border:none!important;
-border-radius:6px!important;
-padding:3px 6px!important;
-font-size:12px;
-cursor:pointer;
-}
-
-/* header giorni */
-
-.fc-col-header-cell{
-background:#1a73e8 !important;
-color:white !important;
-font-weight:600;
-text-transform:uppercase;
-padding:10px 0;
-}
-
-.fc-col-header-cell.fc-day-sat{
-background:#1565c0 !important;
-}
-
-.fc-col-header-cell.fc-day-sun{
-background:#b71c1c !important;
-}
-
-/* weekend */
-
-.fc-day-sat{
-background:#f1f8ff;
-}
-
-.fc-day-sun{
-background:#fff4f4;
-}
-
-/* filtri */
-
-#filters{
-max-width:1400px;
-margin:20px auto;
+.totali{
 display:flex;
-gap:15px;
-flex-wrap:wrap;
+justify-content:center;
+gap:40px;
+margin:20px;
+font-size:20px;
 }
 
-.filter-btn{
-padding:6px 12px;
-border-radius:20px;
-border:1px solid #ccc;
-cursor:pointer;
+.totali div{
 background:white;
+padding:15px;
+border-radius:8px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
-.filter-active{
-background:#1a73e8;
-color:white;
-border:none;
-}
-
-/* modal */
-
-.modal{
-display:none;
-position:fixed;
-z-index:2000;
-left:0;
-top:0;
+canvas{
 width:100%;
-height:100%;
-background:rgba(0,0,0,0.3);
+max-width:900px;
+height:300px;
+margin:auto;
+display:block;
 }
 
-.modal-content{
+table{
+width:100%;
+border-collapse:collapse;
 background:white;
-width:380px;
-margin:10% auto;
-padding:20px;
-border-radius:10px;
-box-shadow:0 10px 30px rgba(0,0,0,0.2);
+margin-top:20px;
 }
 
-.modal input,
-.modal textarea,
-.modal select{
-width:100%;
-margin-bottom:10px;
+th,td{
 padding:8px;
-border:1px solid #ccc;
-border-radius:6px;
-font-size:14px;
+border:1px solid #ddd;
+text-align:left;
 }
 
-.modal-buttons{
-display:flex;
-justify-content:space-between;
-margin-top:10px;
+th{
+background:#eeeeee;
 }
 
-button{
-padding:6px 10px;
-border:none;
-border-radius:6px;
+.passato{
+background:#f0f0f0;
+}
+
+.numeroPos{
+color:green;
+font-weight:bold;
+}
+
+.numeroNeg{
+color:red;
+font-weight:bold;
+}
+
+.numeroZero{
+color:black;
+}
+
+.editEntrata{
 cursor:pointer;
+background:#f0fff0;
 }
 
-.btn-save{background:#1a73e8;color:white;}
-.btn-delete{background:#d93025;color:white;}
-.btn-cancel{background:#e0e0e0;}
+.editUscita{
+cursor:pointer;
+background:#fff0f0;
+}
 
-.tooltip{
-position:absolute;
-background:#202124;
-color:white;
-padding:6px 8px;
-border-radius:6px;
-font-size:12px;
-pointer-events:none;
-opacity:0;
+.popup{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.4);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+.popupContent{
+background: linear-gradient(135deg, #ffffff, #e6f2ff);
+padding: 20px;
+border-radius: 12px;
+width: 320px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+text-align: center;
+}
+
+.popupContent input{
+width: 100%;
+margin-bottom: 12px;
+padding: 8px;
+border-radius: 6px;
+border: 1px solid #ccc;
+font-size: 14px;
+}
+
+.popupButtons{
+display: flex;
+justify-content: space-between;
+gap: 10px;
+}
+
+.popupButtons button{
+flex: 1;
+padding: 8px 0;
+border: none;
+border-radius: 6px;
+font-weight: bold;
+cursor: pointer;
+transition: all 0.2s ease;
+}
+
+.btnSalva{
+background-color: #28a745;
+color: white;
+}
+
+.btnSalva:hover{
+background-color: #218838;
+}
+
+.btnAnnulla{
+background-color: #6c757d;
+color: white;
+}
+
+.btnAnnulla:hover{
+background-color: #5a6268;
+}
+
+.btnAzzera{
+background-color: #dc3545;
+color: white;
+}
+
+.btnAzzera:hover{
+background-color: #c82333;
+}
+
+.weekend{
+background:#fff3cd;
+font-weight:bold;
+}
+
+.oggi{
+background:#cce5ff;
+font-weight:bold;
+}
+
+.appuntamenti{
+font-size:13px;
+color:#333;
 }
 
 </style>
 </head>
 
 <body>
-<div class="topmenu">
 
-<div class="menu-title">Villamax</div>
+<div id="menu-container"></div>
 
-<a href="agenda.html">Agenda</a>
+<h1>Wanalis</h1>
 
-<a href="v-analisi.html">Analisi</a>
+<div class="totali">
 
-<a href="v-analisi-next.html">Analisi Next</a>
-
-<a href="mesi.html">Mesi</a>
-
-</div>
-<h2>Agenda Villamax</h2>
-
-<div id="filters">
-<div class="filter-btn filter-active" data-type="ALL">Tutti</div>
-<div class="filter-btn" data-type="P">P</div>
-<div class="filter-btn" data-type="S">S</div>
-<div class="filter-btn" data-type="M">M</div>
-<div class="filter-btn" data-type="C">C</div>
-<div class="filter-btn" data-type="A">A</div>
-<div class="filter-btn" data-type="L">L</div>
-</div>
-
-<div id="calendar"></div>
-
-<div id="tooltip" class="tooltip"></div>
-
-<div id="eventModal" class="modal">
-<div class="modal-content">
-
-<h3>Evento</h3>
-
-<input id="evTitle" placeholder="Titolo">
-
-<select id="evTipo">
-<option value="M">Memo</option>
-<option value="L">Lavoro</option>
-<option selected value="P">Pagare</option>
-<option value="A">Amici</option>
-<option value="S">Salute</option>
-<option value="C">Cinema</option>
-</select>
-
-<div style="display:flex;gap:10px">
-
-<select id="evOra">
-<option value="0">00</option>
-<option value="1">01</option>
-<option value="2">02</option>
-<option value="3">03</option>
-<option value="4">04</option>
-<option value="5">05</option>
-<option value="6">06</option>
-<option value="7">07</option>
-<option value="8">08</option>
-<option value="9">09</option>
-<option value="10">10</option>
-<option value="11">11</option>
-<option value="12">12</option>
-<option value="13">13</option>
-<option value="14">14</option>
-<option value="15">15</option>
-<option value="16">16</option>
-<option value="17">17</option>
-<option value="18">18</option>
-<option value="19">19</option>
-<option value="20">20</option>
-<option value="21">21</option>
-<option value="22">22</option>
-<option value="23">23</option>
-</select>
-
-<select id="evMin">
-<option value="0">00</option>
-<option value="15">15</option>
-<option value="30">30</option>
-<option value="45">45</option>
-</select>
+<div>Entrate Effettive<br><b id="totEntrate">0</b></div>
+<div>Uscite Effettive<br><b id="totUscite">0</b></div>
+<div>Differenza<br><b id="totDiff">0</b></div>
 
 </div>
 
-<textarea id="evDesc" placeholder="Descrizione"></textarea>
+<canvas id="grafico"></canvas>
 
-<div class="modal-buttons">
-<button class="btn-save" id="saveEvent">Salva</button>
-<button class="btn-delete" id="deleteEvent">Elimina</button>
-<button class="btn-cancel" id="closeModal">Chiudi</button>
+<table id="tabella">
+
+<thead>
+<tr>
+<th>Data</th>
+<th>Appuntamenti</th>
+<th>Uscita</th>
+<th>Desc Uscita</th>
+<th>Causale</th>
+<th>Importo EUR</th>
+<th>Entrata</th>
+<th>Desc Entrata</th>
+</tr>
+</thead>
+
+<tbody></tbody>
+
+</table>
+
+<div class="popup" id="popup">
+
+<div class="popupContent">
+
+<h3 id="titoloPopup"></h3>
+
+<input id="valoreInput" placeholder="Valore">
+<input id="descInput" placeholder="Descrizione">
+
+<div class="popupButtons">
+<button class="btnSalva" onclick="salva()">Salva</button>
+<button class="btnAnnulla" onclick="chiudi()">Annulla</button>
+<button class="btnAzzera" onclick="azzera()">Azzera</button>
 </div>
 
 </div>
+
 </div>
 
 <script>
 
-document.addEventListener('DOMContentLoaded',function(){
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
 
-const API_BASE="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api";
-const API_KEY="I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+</script>
 
-let currentId=null;
-let currentDate=null;
-let filter="ALL";
+<script>
 
-const tooltip=document.getElementById("tooltip");
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+const API_AGENDA="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+let dati=[]
+let agendaMap={}
+let grafico=null
+let rigaEdit=null
+let tipoEdit=null
 
 const iconMap={
 P:"💰",
@@ -303,207 +262,287 @@ S:"🏥",
 M:"📝",
 C:"🎬",
 A:"👥",
-L:"💼"
-};
+L:"💼",
+B:"🎂"
+}
 
-const calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
+const colorMap={
+P:"#EA4335",
+S:"#34A853",
+M:"#8AB4F8",
+C:"#FDD663",
+A:"#137333",
+L:"#FB8C00",
+B:"#ff66c4"
+}
 
-initialView:'dayGridMonth',
-locale:'it',
-firstDay:1,
-eventDisplay:'block',
+async function carica(){
 
-headerToolbar:{
-left:'prev,next today',
-center:'title',
-right:'dayGridMonth,timeGridWeek,timeGridDay'
+const res=await fetch(API)
+dati=await res.json()
+
+await caricaAgenda()
+
+render()
+
+}
+
+async function caricaAgenda(){
+
+const res=await fetch(API_AGENDA)
+const agenda=await res.json()
+
+agendaMap={}
+
+agenda.forEach(a=>{
+
+const key=a.data.toString()
+
+if(!agendaMap[key]) agendaMap[key]=[]
+
+agendaMap[key].push({
+desc:a.desc_breve,
+tipo:a.tipo
+})
+
+})
+
+}
+
+function formatData(d){
+
+const date=new Date(d)
+
+return date.toLocaleDateString("it-IT",{
+weekday:"short",
+day:"2-digit",
+month:"2-digit",
+year:"numeric"
+})
+
+}
+
+function formatKeyData(d){
+
+const date=new Date(d)
+
+const y=date.getFullYear()
+const m=(date.getMonth()+1).toString().padStart(2,"0")
+const day=date.getDate().toString().padStart(2,"0")
+
+return y+m+day
+
+}
+
+function classeNumero(v){
+
+if(v>0) return "numeroPos"
+if(v<0) return "numeroNeg"
+return "numeroZero"
+
+}
+
+function render(){
+
+const tbody=document.querySelector("#tabella tbody")
+tbody.innerHTML=""
+
+const oggi=new Date()
+oggi.setHours(0,0,0,0)
+
+let totEntrate=0
+let totUscite=0
+let graficoMap={}
+
+dati.forEach((r,i)=>{
+
+const tr=document.createElement("tr")
+
+const data=new Date(r.Idata)
+data.setHours(0,0,0,0)
+
+if(data<oggi) tr.classList.add("passato")
+
+if(data.getTime()===oggi.getTime()) tr.classList.add("oggi")
+
+const giorno=data.getDay()
+if(giorno===0 || giorno===6) tr.classList.add("weekend")
+
+let importo=r.ImportoEUR ?? 0
+
+if(data>oggi){
+
+if(r.Entrata) totEntrate+=Number(r.Entrata)
+if(r.Uscita) totUscite+=Number(r.Uscita)
+
+}
+
+if(importo>0) totEntrate+=importo
+if(importo<0) totUscite+=Math.abs(importo)
+
+if(data>oggi && r.Uscita){
+
+const key=r.DescUscita||"altro"
+graficoMap[key]=(graficoMap[key]||0)+Number(r.Uscita)
+
+}
+
+const keyData=formatKeyData(r.Idata)
+
+let appuntamenti=""
+
+if(agendaMap[keyData]){
+
+appuntamenti=agendaMap[keyData].map(a=>{
+
+const icon=iconMap[a.tipo]||""
+const color=colorMap[a.tipo]||"#666"
+
+return `<span style="color:${color}">${icon} ${a.desc}</span>`
+
+}).join("<br>")
+
+}
+
+tr.innerHTML=`
+
+<td>${formatData(r.Idata)}</td>
+
+<td class="appuntamenti">${appuntamenti}</td>
+
+<td class="editUscita" onclick="editUscita(${i})">${r.Uscita||""}</td>
+
+<td>${r.DescUscita||""}</td>
+
+<td>${r.Causale||""}</td>
+
+<td class="${classeNumero(importo)}">${importo||""}</td>
+
+<td class="editEntrata" onclick="editEntrata(${i})">${r.Entrata||""}</td>
+
+<td>${r.DescEntrata||""}</td>
+
+`
+
+tbody.appendChild(tr)
+
+})
+
+document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
+document.getElementById("totUscite").innerText=totUscite.toFixed(2)
+document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2)
+
+disegnaGrafico(graficoMap)
+
+}
+
+function disegnaGrafico(map){
+
+const labels=[]
+const valori=[]
+
+for(const k in map){
+
+if(map[k]!=0){
+
+labels.push(k)
+valori.push(map[k])
+
+}
+
+}
+
+if(grafico) grafico.destroy()
+
+const ctx=document.getElementById("grafico")
+
+grafico=new Chart(ctx,{
+type:"bar",
+data:{
+labels:labels,
+datasets:[{
+label:"Uscite",
+data:valori
+}]
+},
+options:{
+plugins:{
+legend:{display:false}
+}
+}
+})
+
+}
+
+function editEntrata(i){
+
+tipoEdit="entrata"
+rigaEdit=dati[i]
+
+document.getElementById("titoloPopup").innerText="Modifica Entrata"
+
+document.getElementById("valoreInput").value=rigaEdit.Entrata||""
+document.getElementById("descInput").value=rigaEdit.DescEntrata||""
+
+document.getElementById("popup").style.display="flex"
+
+}
+
+function editUscita(i){
+
+tipoEdit="uscita"
+rigaEdit=dati[i]
+
+document.getElementById("titoloPopup").innerText="Modifica Uscita"
+
+document.getElementById("valoreInput").value=rigaEdit.Uscita||""
+document.getElementById("descInput").value=rigaEdit.DescUscita||""
+
+document.getElementById("popup").style.display="flex"
+
+}
+
+function chiudi(){
+document.getElementById("popup").style.display="none"
+}
+
+function azzera(){
+document.getElementById("valoreInput").value = 0;
+document.getElementById("descInput").value = "-";
+salva();
+}
+
+async function salva(){
+
+const valore=document.getElementById("valoreInput").value
+const desc=document.getElementById("descInput").value
+
+await fetch("https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateMovAnalisi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
 },
 
-events:loadEvents,
+body:JSON.stringify({
 
-dateClick:function(info){
-currentId=null;
-currentDate=info.date;
-openModal("", "P", "",0,0);
-},
-
-eventClick:function(info){
-
-currentId=info.event.extendedProps.id;
-currentDate=info.event.start;
-
-openModal(
-info.event.title,
-info.event.extendedProps.tipo,
-info.event.extendedProps.desc,
-info.event.start.getHours(),
-info.event.start.getMinutes()
-);
-
-}
-
-});
-
-calendar.render();
-
-async function loadEvents(fetchInfo,successCallback){
-
-const res=await axios.get(`${API_BASE}/GetEvents?code=${API_KEY}`);
-
-const events=res.data.map(e=>{
-
-const d=e.data.toString();
-
-let startDate;
-
-if(e.ora==0 && e.minuti==0){
-
-startDate=new Date(
-d.substring(0,4),
-d.substring(4,6)-1,
-d.substring(6,8)
-);
-
-}else{
-
-startDate=new Date(
-d.substring(0,4),
-d.substring(4,6)-1,
-d.substring(6,8),
-e.ora||0,
-e.minuti||0
-);
-
-}
-
-let color="#4285F4";
-
-if(e.tipo==="P") color="#EA4335";
-if(e.tipo==="S") color="#34A853";
-if(e.tipo==="M") color="#8AB4F8";
-if(e.tipo==="C") color="#FDD663";
-if(e.tipo==="A") color="#137333";
-if(e.tipo==="L") color="#FB8C00";
-
-const icon=iconMap[e.tipo]||"";
-
-return{
-title:icon+" "+e.desc_breve,
-start:startDate,
-backgroundColor:color,
-borderColor:color,
-textColor:"#fff",
-extendedProps:{
-id:e.id,
-tipo:e.tipo,
-desc:e.descrizione
-}
-};
-
-});
-
-successCallback(events);
-
-}
-
-function openModal(title,tipo,desc,ora,minuti){
-
-document.getElementById("evTitle").value=title;
-document.getElementById("evTipo").value=tipo;
-document.getElementById("evDesc").value=desc;
-
-document.getElementById("evOra").value=ora;
-document.getElementById("evMin").value=minuti;
-
-document.getElementById("eventModal").style.display="block";
-
-}
-
-document.getElementById("closeModal").onclick=function(){
-document.getElementById("eventModal").style.display="none";
-}
-
-document.getElementById("saveEvent").onclick=async function(){
-
-const titolo=document.getElementById("evTitle").value;
-const tipo=document.getElementById("evTipo").value;
-const desc=document.getElementById("evDesc").value;
-
-const ora=parseInt(document.getElementById("evOra").value);
-const minuti=parseInt(document.getElementById("evMin").value);
-
-if(currentId==null){
-
-await axios.post(`${API_BASE}/InsertEvent?code=${API_KEY}`,{
-data:formatDateToInt(currentDate),
-ora:ora,
-minuti:minuti,
-tipo:tipo,
-durata_ore:0,
-durata_minuti:0,
-desc_breve:titolo,
+idata:rigaEdit.Idata,
+tipo:tipoEdit,
+valore:valore,
 descrizione:desc
-});
 
-}else{
+})
 
-await axios.put(`${API_BASE}/UpdateEvent?code=${API_KEY}`,{
-id:currentId,
-desc_breve:titolo
-});
+})
 
-}
+chiudi()
 
-calendar.refetchEvents();
-
-document.getElementById("eventModal").style.display="none";
+await carica()
 
 }
 
-document.getElementById("deleteEvent").onclick=async function(){
-
-if(!currentId) return;
-
-if(!confirm("Eliminare evento?")) return;
-
-await axios.delete(`${API_BASE}/DeleteEvent?code=${API_KEY}`,{
-data:{id:currentId}
-});
-
-calendar.refetchEvents();
-
-document.getElementById("eventModal").style.display="none";
-
-}
-
-document.querySelectorAll(".filter-btn").forEach(btn=>{
-
-btn.onclick=function(){
-
-document.querySelectorAll(".filter-btn")
-.forEach(b=>b.classList.remove("filter-active"));
-
-btn.classList.add("filter-active");
-
-filter=btn.dataset.type;
-
-calendar.refetchEvents();
-
-}
-
-});
-
-function formatDateToInt(date){
-
-const y=date.getFullYear();
-const m=(date.getMonth()+1).toString().padStart(2,'0');
-const d=date.getDate().toString().padStart(2,'0');
-
-return parseInt(`${y}${m}${d}`);
-
-}
-
-});
+carica()
 
 </script>
 
