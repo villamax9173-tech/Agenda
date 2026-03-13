@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="it">
+
 <head>
+
 <link rel="stylesheet" href="menu.css">
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Wanalis</title>
+<title>Atlante Wanalis</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -21,26 +24,9 @@ h1{
 text-align:center;
 }
 
-.totali{
-display:flex;
-justify-content:center;
-gap:40px;
-margin:20px;
-font-size:20px;
-}
-
-.totali div{
-background:white;
-padding:15px;
-border-radius:8px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
-}
-
 canvas{
-width:100%;
-max-width:900px;
-height:300px;
-margin:auto;
+max-width:1000px;
+margin:40px auto;
 display:block;
 }
 
@@ -48,191 +34,75 @@ table{
 width:100%;
 border-collapse:collapse;
 background:white;
-margin-top:20px;
+margin-top:30px;
 }
 
 th,td{
-padding:8px;
+padding:6px;
 border:1px solid #ddd;
-text-align:left;
+text-align:right;
+font-size:13px;
 }
 
 th{
 background:#eeeeee;
 }
 
-.passato{
-background:#f0f0f0;
+td:first-child,
+th:first-child{
+text-align:center;
+font-weight:bold;
 }
 
-.numeroPos{
+.pos{
 color:green;
 font-weight:bold;
 }
 
-.numeroNeg{
+.neg{
 color:red;
 font-weight:bold;
 }
 
-.numeroZero{
-color:black;
-}
-
-.editEntrata{
-cursor:pointer;
-background:#f0fff0;
-}
-
-.editUscita{
-cursor:pointer;
-background:#fff0f0;
-}
-
-.popup{
-position:fixed;
-top:0;
-left:0;
-right:0;
-bottom:0;
-background:rgba(0,0,0,0.4);
-display:none;
-align-items:center;
-justify-content:center;
-}
-
-.popupContent{
-background: linear-gradient(135deg, #ffffff, #e6f2ff);
-padding: 20px;
-border-radius: 12px;
-width: 320px;
-box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-text-align: center;
-}
-
-.popupContent input{
-width: 100%;
-margin-bottom: 12px;
-padding: 8px;
-border-radius: 6px;
-border: 1px solid #ccc;
-font-size: 14px;
-}
-
-.popupButtons{
-display: flex;
-justify-content: space-between;
-gap: 10px;
-}
-
-.popupButtons button{
-flex: 1;
-padding: 8px 0;
-border: none;
-border-radius: 6px;
-font-weight: bold;
-cursor: pointer;
-transition: all 0.2s ease;
-}
-
-.btnSalva{
-background-color: #28a745;
-color: white;
-}
-
-.btnSalva:hover{
-background-color: #218838;
-}
-
-.btnAnnulla{
-background-color: #6c757d;
-color: white;
-}
-
-.btnAnnulla:hover{
-background-color: #5a6268;
-}
-
-.btnAzzera{
-background-color: #dc3545;
-color: white;
-}
-
-.btnAzzera:hover{
-background-color: #c82333;
-}
-
-.weekend{
-background:#fff3cd;
-font-weight:bold;
-}
-
-.oggi{
-background:#cce5ff;
-font-weight:bold;
-}
-
-.appuntamenti{
-font-size:13px;
-color:#333;
+.zero{
+color:#444;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <div id="menu-container"></div>
 
-<h1>Wanalis</h1>
+<h1>Atlante Economico</h1>
 
-<div class="totali">
+<canvas id="graficoAnni"></canvas>
 
-<div>Entrate Effettive<br><b id="totEntrate">0</b></div>
-<div>Uscite Effettive<br><b id="totUscite">0</b></div>
-<div>Differenza<br><b id="totDiff">0</b></div>
-
-</div>
-
-<canvas id="grafico"></canvas>
+<canvas id="graficoMesi"></canvas>
 
 <table id="tabella">
-
 <thead>
 <tr>
-<th>Data</th>
-<th>Appuntamenti</th>
-<th>Uscita</th>
-<th>Desc Uscita</th>
-<th>Causale</th>
-<th>Importo EUR</th>
-<th>Entrata</th>
-<th>Desc Entrata</th>
+<th>Anno</th>
+<th>Gen</th>
+<th>Feb</th>
+<th>Mar</th>
+<th>Apr</th>
+<th>Mag</th>
+<th>Giu</th>
+<th>Lug</th>
+<th>Ago</th>
+<th>Sett</th>
+<th>Ott</th>
+<th>Nov</th>
+<th>Dic</th>
+<th>Totale</th>
 </tr>
 </thead>
-
 <tbody></tbody>
-
 </table>
-
-<div class="popup" id="popup">
-
-<div class="popupContent">
-
-<h3 id="titoloPopup"></h3>
-
-<input id="valoreInput" placeholder="Valore">
-<input id="descInput" placeholder="Descrizione">
-
-<div class="popupButtons">
-<button class="btnSalva" onclick="salva()">Salva</button>
-<button class="btnAnnulla" onclick="chiudi()">Annulla</button>
-<button class="btnAzzera" onclick="azzera()">Azzera</button>
-</div>
-
-</div>
-
-</div>
 
 <script>
 
@@ -246,299 +116,146 @@ document.getElementById("menu-container").innerHTML = data;
 
 <script>
 
-const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetAtlante?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
 
-const API_AGENDA="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEvents?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+const mesi=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Sett","Ott","Nov","Dic"]
 
 let dati=[]
-let agendaMap={}
-let grafico=null
-let rigaEdit=null
-let tipoEdit=null
 
-const iconMap={
-P:"💰",
-S:"🏥",
-M:"📝",
-C:"🎬",
-A:"👥",
-L:"💼",
-B:"🎂"
+function formatNumero(n){
+
+return Math.round(n).toLocaleString("it-IT")
+
 }
 
-const colorMap={
-P:"#EA4335",
-S:"#34A853",
-M:"#8AB4F8",
-C:"#FDD663",
-A:"#137333",
-L:"#FB8C00",
-B:"#ff66c4"
+function classe(v){
+
+if(v>0) return "pos"
+if(v<0) return "neg"
+return "zero"
+
 }
 
 async function carica(){
 
 const res=await fetch(API)
+
 dati=await res.json()
 
-await caricaAgenda()
+renderTabella()
 
-render()
+graficoAnni()
 
-}
-
-async function caricaAgenda(){
-
-const res=await fetch(API_AGENDA)
-const agenda=await res.json()
-
-agendaMap={}
-
-agenda.forEach(a=>{
-
-const key=a.data.toString()
-
-if(!agendaMap[key]) agendaMap[key]=[]
-
-agendaMap[key].push({
-desc:a.desc_breve,
-tipo:a.tipo
-})
-
-})
+graficoMesi()
 
 }
 
-function formatData(d){
-
-const date=new Date(d)
-
-return date.toLocaleDateString("it-IT",{
-weekday:"short",
-day:"2-digit",
-month:"2-digit",
-year:"numeric"
-})
-
-}
-
-function formatKeyData(d){
-
-const date=new Date(d)
-
-const y=date.getFullYear()
-const m=(date.getMonth()+1).toString().padStart(2,"0")
-const day=date.getDate().toString().padStart(2,"0")
-
-return y+m+day
-
-}
-
-function classeNumero(v){
-
-if(v>0) return "numeroPos"
-if(v<0) return "numeroNeg"
-return "numeroZero"
-
-}
-
-function render(){
+function renderTabella(){
 
 const tbody=document.querySelector("#tabella tbody")
+
 tbody.innerHTML=""
 
-const oggi=new Date()
-oggi.setHours(0,0,0,0)
-
-let totEntrate=0
-let totUscite=0
-let graficoMap={}
-
-dati.forEach((r,i)=>{
+dati.forEach(r=>{
 
 const tr=document.createElement("tr")
 
-const data=new Date(r.Idata)
-data.setHours(0,0,0,0)
+let html=`<td>${r.anno}</td>`
 
-if(data<oggi) tr.classList.add("passato")
+mesi.forEach(m=>{
 
-if(data.getTime()===oggi.getTime()) tr.classList.add("oggi")
+const v=r[m]||0
 
-const giorno=data.getDay()
-if(giorno===0 || giorno===6) tr.classList.add("weekend")
+html+=`<td class="${classe(v)}">${formatNumero(v)}</td>`
 
-let importo=r.ImportoEUR ?? 0
+})
 
-if(data>oggi){
+html+=`<td class="${classe(r.TotAnno)}">${formatNumero(r.TotAnno)}</td>`
 
-if(r.Entrata) totEntrate+=Number(r.Entrata)
-if(r.Uscita) totUscite+=Number(r.Uscita)
-
-}
-
-if(importo>0) totEntrate+=importo
-if(importo<0) totUscite+=Math.abs(importo)
-
-if(data>oggi && r.Uscita){
-
-const key=r.DescUscita||"altro"
-graficoMap[key]=(graficoMap[key]||0)+Number(r.Uscita)
-
-}
-
-const keyData=formatKeyData(r.Idata)
-
-let appuntamenti=""
-
-if(agendaMap[keyData]){
-
-appuntamenti=agendaMap[keyData].map(a=>{
-
-const icon=iconMap[a.tipo]||""
-const color=colorMap[a.tipo]||"#666"
-
-return `<span style="color:${color}">${icon} ${a.desc}</span>`
-
-}).join("<br>")
-
-}
-
-tr.innerHTML=`
-
-<td>${formatData(r.Idata)}</td>
-
-<td class="appuntamenti">${appuntamenti}</td>
-
-<td class="editUscita" onclick="editUscita(${i})">${r.Uscita||""}</td>
-
-<td>${r.DescUscita||""}</td>
-
-<td>${r.Causale||""}</td>
-
-<td class="${classeNumero(importo)}">${importo||""}</td>
-
-<td class="editEntrata" onclick="editEntrata(${i})">${r.Entrata||""}</td>
-
-<td>${r.DescEntrata||""}</td>
-
-`
+tr.innerHTML=html
 
 tbody.appendChild(tr)
 
 })
 
-document.getElementById("totEntrate").innerText=totEntrate.toFixed(2)
-document.getElementById("totUscite").innerText=totUscite.toFixed(2)
-document.getElementById("totDiff").innerText=(totEntrate-totUscite).toFixed(2)
-
-disegnaGrafico(graficoMap)
-
 }
 
-function disegnaGrafico(map){
+function graficoAnni(){
 
 const labels=[]
 const valori=[]
 
-for(const k in map){
+dati.slice().reverse().forEach(r=>{
 
-if(map[k]!=0){
+labels.push(r.anno)
 
-labels.push(k)
-valori.push(map[k])
+valori.push(Math.round(r.TotAnno))
 
-}
+})
 
-}
+new Chart(
 
-if(grafico) grafico.destroy()
+document.getElementById("graficoAnni"),
 
-const ctx=document.getElementById("grafico")
+{
+type:"line",
 
-grafico=new Chart(ctx,{
-type:"bar",
 data:{
 labels:labels,
 datasets:[{
-label:"Uscite",
-data:valori
+label:"Totale Annuale",
+data:valori,
+tension:0.3
 }]
 },
+
 options:{
 plugins:{
 legend:{display:false}
 }
 }
+
 })
 
 }
 
-function editEntrata(i){
+function graficoMesi(){
 
-tipoEdit="entrata"
-rigaEdit=dati[i]
+const ultimo=dati[0]
 
-document.getElementById("titoloPopup").innerText="Modifica Entrata"
+const labels=[]
+const valori=[]
 
-document.getElementById("valoreInput").value=rigaEdit.Entrata||""
-document.getElementById("descInput").value=rigaEdit.DescEntrata||""
+mesi.forEach(m=>{
 
-document.getElementById("popup").style.display="flex"
+labels.push(m)
 
-}
+valori.push(Math.round(ultimo[m]||0))
 
-function editUscita(i){
+})
 
-tipoEdit="uscita"
-rigaEdit=dati[i]
+new Chart(
 
-document.getElementById("titoloPopup").innerText="Modifica Uscita"
+document.getElementById("graficoMesi"),
 
-document.getElementById("valoreInput").value=rigaEdit.Uscita||""
-document.getElementById("descInput").value=rigaEdit.DescUscita||""
+{
+type:"bar",
 
-document.getElementById("popup").style.display="flex"
-
-}
-
-function chiudi(){
-document.getElementById("popup").style.display="none"
-}
-
-function azzera(){
-document.getElementById("valoreInput").value = 0;
-document.getElementById("descInput").value = "-";
-salva();
-}
-
-async function salva(){
-
-const valore=document.getElementById("valoreInput").value
-const desc=document.getElementById("descInput").value
-
-await fetch("https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/UpdateMovAnalisi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==",{
-
-method:"POST",
-
-headers:{
-"Content-Type":"application/json"
+data:{
+labels:labels,
+datasets:[{
+label:"Anno "+ultimo.anno,
+data:valori
+}]
 },
 
-body:JSON.stringify({
-
-idata:rigaEdit.Idata,
-tipo:tipoEdit,
-valore:valore,
-descrizione:desc
-
-})
+options:{
+plugins:{
+legend:{display:false}
+}
+}
 
 })
-
-chiudi()
-
-await carica()
 
 }
 
@@ -547,4 +264,5 @@ carica()
 </script>
 
 </body>
+
 </html>
