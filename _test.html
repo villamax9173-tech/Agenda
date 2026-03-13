@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="it">
 
@@ -26,15 +27,16 @@ margin-bottom:30px;
 }
 
 .graficoBox{
-width:100%;
 max-width:1400px;
 margin:auto;
 }
 
 canvas{
 width:100%;
-height:420px;
-margin-bottom:60px;
+max-width:1400px;
+height:420px !important;
+display:block;
+margin:40px auto;
 }
 
 table{
@@ -61,16 +63,35 @@ text-align:center;
 font-weight:bold;
 }
 
-.pos{color:green;font-weight:bold;}
-.neg{color:red;font-weight:bold;}
-.zero{color:#444;}
+.pos{
+color:green;
+font-weight:bold;
+}
 
-.deltaUp{color:green;font-weight:bold;}
-.deltaDown{color:red;font-weight:bold;}
-.deltaFlat{color:#888;}
+.neg{
+color:red;
+font-weight:bold;
+}
+
+.zero{
+color:#444;
+}
 
 .delta{
 font-size:11px;
+font-weight:bold;
+}
+
+.deltaUp{
+color:green;
+}
+
+.deltaDown{
+color:red;
+}
+
+.deltaFlat{
+color:#888;
 }
 
 </style>
@@ -257,7 +278,7 @@ tension:0.3
 
 options:{
 responsive:true,
-maintainAspectRatio:false,
+maintainAspectRatio:true,
 plugins:{
 legend:{display:false}
 }
@@ -299,7 +320,7 @@ data:valori
 
 options:{
 responsive:true,
-maintainAspectRatio:false,
+maintainAspectRatio:true,
 plugins:{
 legend:{display:false}
 }
@@ -314,4 +335,6 @@ carica()
 </script>
 
 </body>
+
 </html>
+```
