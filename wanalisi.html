@@ -89,7 +89,7 @@ cursor:pointer;
 background:#fff0f0;
 }
 
-  .popup{
+.popup{
 position:fixed;
 top:0;
 left:0;
@@ -100,67 +100,68 @@ display:none;
 align-items:center;
 justify-content:center;
 }
-  
+
 .popupContent{
-  background: linear-gradient(135deg, #ffffff, #e6f2ff);
-  padding: 20px;
-  border-radius: 12px;
-  width: 320px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  text-align: center;
+background: linear-gradient(135deg, #ffffff, #e6f2ff);
+padding: 20px;
+border-radius: 12px;
+width: 320px;
+box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+text-align: center;
 }
 
 .popupContent input{
-  width: 100%;
-  margin-bottom: 12px;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  font-size: 14px;
+width: 100%;
+margin-bottom: 12px;
+padding: 8px;
+border-radius: 6px;
+border: 1px solid #ccc;
+font-size: 14px;
 }
 
 .popupButtons{
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+display: flex;
+justify-content: space-between;
+gap: 10px;
 }
 
 .popupButtons button{
-  flex: 1;
-  padding: 8px 0;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: all 0.2s ease;
+flex: 1;
+padding: 8px 0;
+border: none;
+border-radius: 6px;
+font-weight: bold;
+cursor: pointer;
+transition: all 0.2s ease;
 }
 
 .btnSalva{
-  background-color: #28a745;
-  color: white;
+background-color: #28a745;
+color: white;
 }
 
 .btnSalva:hover{
-  background-color: #218838;
+background-color: #218838;
 }
 
 .btnAnnulla{
-  background-color: #6c757d;
-  color: white;
+background-color: #6c757d;
+color: white;
 }
 
 .btnAnnulla:hover{
-  background-color: #5a6268;
+background-color: #5a6268;
 }
 
 .btnAzzera{
-  background-color: #dc3545;
-  color: white;
+background-color: #dc3545;
+color: white;
 }
 
 .btnAzzera:hover{
-  background-color: #c82333;
+background-color: #c82333;
 }
+
 .weekend{
 background:#fff3cd;
 font-weight:bold;
@@ -180,7 +181,9 @@ color:#333;
 </head>
 
 <body>
+
 <div id="menu-container"></div>
+
 <h1>Wanalis</h1>
 
 <div class="totali">
@@ -196,9 +199,7 @@ color:#333;
 <table id="tabella">
 
 <thead>
-
 <tr>
-
 <th>Data</th>
 <th>Appuntamenti</th>
 <th>Uscita</th>
@@ -207,34 +208,32 @@ color:#333;
 <th>Importo EUR</th>
 <th>Entrata</th>
 <th>Desc Entrata</th>
-
 </tr>
-
 </thead>
 
 <tbody></tbody>
 
 </table>
 
-
 <div class="popup" id="popup">
 
-  <div class="popupContent">
-    <h3 id="titoloPopup"></h3>
+<div class="popupContent">
 
-    <input id="valoreInput" placeholder="Valore">
-    <input id="descInput" placeholder="Descrizione">
+<h3 id="titoloPopup"></h3>
 
-    <div class="popupButtons">
-      <button class="btnSalva" onclick="salva()">Salva</button>
-      <button class="btnAnnulla" onclick="chiudi()">Annulla</button>
-      <button class="btnAzzera" onclick="azzera()">Azzera</button>
-    </div>
-  </div>
+<input id="valoreInput" placeholder="Valore">
+<input id="descInput" placeholder="Descrizione">
 
+<div class="popupButtons">
+<button class="btnSalva" onclick="salva()">Salva</button>
+<button class="btnAnnulla" onclick="chiudi()">Annulla</button>
+<button class="btnAzzera" onclick="azzera()">Azzera</button>
 </div>
 
 </div>
+
+</div>
+
 <script>
 
 fetch("menu.html")
@@ -244,6 +243,7 @@ document.getElementById("menu-container").innerHTML = data;
 });
 
 </script>
+
 <script>
 
 const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetEventsWaNALIS?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
@@ -255,6 +255,26 @@ let agendaMap={}
 let grafico=null
 let rigaEdit=null
 let tipoEdit=null
+
+const iconMap={
+P:"💰",
+S:"🏥",
+M:"📝",
+C:"🎬",
+A:"👥",
+L:"💼",
+B:"🎂"
+}
+
+const colorMap={
+P:"#EA4335",
+S:"#34A853",
+M:"#8AB4F8",
+C:"#FDD663",
+A:"#137333",
+L:"#FB8C00",
+B:"#ff66c4"
+}
 
 async function carica(){
 
@@ -280,7 +300,10 @@ const key=a.data.toString()
 
 if(!agendaMap[key]) agendaMap[key]=[]
 
-agendaMap[key].push(a.desc_breve)
+agendaMap[key].push({
+desc:a.desc_breve,
+tipo:a.tipo
+})
 
 })
 
@@ -370,7 +393,14 @@ let appuntamenti=""
 
 if(agendaMap[keyData]){
 
-appuntamenti=agendaMap[keyData].join("<br>")
+appuntamenti=agendaMap[keyData].map(a=>{
+
+const icon=iconMap[a.tipo]||""
+const color=colorMap[a.tipo]||"#666"
+
+return `<span style="color:${color}">${icon} ${a.desc}</span>`
+
+}).join("<br>")
 
 }
 
@@ -427,9 +457,7 @@ if(grafico) grafico.destroy()
 const ctx=document.getElementById("grafico")
 
 grafico=new Chart(ctx,{
-
 type:"bar",
-
 data:{
 labels:labels,
 datasets:[{
@@ -437,13 +465,11 @@ label:"Uscite",
 data:valori
 }]
 },
-
 options:{
 plugins:{
 legend:{display:false}
 }
 }
-
 })
 
 }
@@ -477,18 +503,15 @@ document.getElementById("popup").style.display="flex"
 }
 
 function chiudi(){
-
 document.getElementById("popup").style.display="none"
-
 }
 
-    function azzera(){
-  document.getElementById("valoreInput").value = 0;
-  document.getElementById("descInput").value = "-";
-  salva(); // chiama la funzione salva() subito dopo aver azzerato
+function azzera(){
+document.getElementById("valoreInput").value = 0;
+document.getElementById("descInput").value = "-";
+salva();
 }
 
-    
 async function salva(){
 
 const valore=document.getElementById("valoreInput").value
