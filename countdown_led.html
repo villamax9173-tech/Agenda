@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -5,7 +6,7 @@
 body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
 .titolo{font-size:32px;margin-top:40px}
 .clock img{width:60px}
-.sep{font-size:80px;padding-left:10px;padding-right:10px}
+.sep{font-size:80px;padding:0 10px}
 </style>
 </head>
 <body>
@@ -15,7 +16,6 @@ body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
 <br><br>
 
 <div class="clock">
-
 <img id="gg_mgl" src="imm/0.gif">
 <img id="gg_cent" src="imm/0.gif">
 <img id="gg_dec" src="imm/0.gif">
@@ -35,7 +35,6 @@ body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
 
 <img id="ss_dec" src="imm/0.gif">
 <img id="ss_un" src="imm/0.gif">
-
 </div>
 
 <script>
@@ -59,6 +58,7 @@ targetDate=new Date(d.data)
 }
 
 function update(){
+
 if(!targetDate) return
 
 var now=new Date()
@@ -67,13 +67,14 @@ if(diff<0) diff=0
 
 var giorni=Math.floor(diff/1000/60/60/24)
 var ore=Math.floor(diff/1000/60/60)%24
-var minuti=Math.floor(diff/1000/60)%60
+var min=Math.floor(diff/1000/60)%60
 var sec=Math.floor(diff/1000)%60
 
 set4("gg",giorni)
 set2("hh",ore)
-set2("mm",minuti)
+set2("mm",min)
 set2("ss",sec)
+
 }
 
 function set2(pref,val){
@@ -91,5 +92,6 @@ document.getElementById(pref+"_un").src="imm/"+val[3]+".gif"
 }
 
 </script>
+
 </body>
 </html>

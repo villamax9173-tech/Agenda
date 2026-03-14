@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -27,6 +28,7 @@ tr:hover{background:#f0f0f0;cursor:pointer}
 
 Data <input id="data" type="datetime-local">
 Descrizione <input id="desc">
+
 <button onclick="insert()">Inserisci</button>
 
 <script>
@@ -46,20 +48,16 @@ d.forEach(x=>{
 
 tb.innerHTML+=`
 <tr onclick="openCountdown(${x.id})">
-
 <td>${x.id}</td>
 <td>${x.data}</td>
 <td>${x.descrizione}</td>
+<td><button onclick="del(${x.id});event.stopPropagation()">X</button></td>
+</tr>`
 
-<td>
-<button onclick="del(${x.id});event.stopPropagation()">X</button>
-</td>
-
-</tr>
-`
 })
 
 })
+
 }
 
 function insert(){
@@ -71,19 +69,25 @@ data:document.getElementById("data").value,
 descrizione:document.getElementById("desc").value
 })
 }).then(()=>load())
+
 }
 
 function del(id){
+
 fetch(api+"DeleteCountdown?id="+id)
 .then(()=>load())
+
 }
 
 function openCountdown(id){
+
 window.location="countdown_led.html?id="+id
+
 }
 
 load()
 
 </script>
+
 </body>
 </html>
