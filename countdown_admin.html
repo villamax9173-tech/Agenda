@@ -1,57 +1,150 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
+
+<meta charset="utf-8">
+
 <style>
-table{border-collapse:collapse;font-family:verdana}
-td,th{border:1px solid #ccc;padding:6px}
-tr:hover{background:#f0f0f0;cursor:pointer}
+
+body{
+font-family:Segoe UI,Arial;
+background:#f4f6f9;
+margin:40px;
+}
+
+h1{
+color:#333;
+}
+
+.panel{
+background:white;
+padding:20px;
+border-radius:8px;
+box-shadow:0 2px 8px rgba(0,0,0,0.1);
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:20px;
+}
+
+th{
+background:#0078d4;
+color:white;
+padding:10px;
+text-align:left;
+}
+
+td{
+padding:8px;
+border-bottom:1px solid #ddd;
+}
+
+tr:hover{
+background:#f1f1f1;
+cursor:pointer;
+}
+
+button{
+background:#0078d4;
+border:none;
+color:white;
+padding:6px 12px;
+border-radius:4px;
+cursor:pointer;
+}
+
+button.delete{
+background:#d83b01;
+}
+
+input{
+padding:6px;
+margin-right:10px;
+}
+
 </style>
+
 </head>
+
 <body>
 
-<h2>Countdown Admin</h2>
+<h1>Countdown Manager</h1>
+
+<div class="panel">
+
+<h3>Nuovo Countdown</h3>
+
+Data
+<input id="data" type="datetime-local">
+
+Descrizione
+<input id="desc">
+
+<button onclick="insert()">Inserisci</button>
+
+</div>
+
+<div class="panel">
+
+<h3>Elenco Countdown</h3>
 
 <table id="tab">
+
 <thead>
 <tr>
 <th>ID</th>
 <th>Data</th>
 <th>Descrizione</th>
-<th></th>
+<th>Azioni</th>
 </tr>
 </thead>
+
 <tbody></tbody>
+
 </table>
 
-<br>
-
-Data <input id="data" type="datetime-local">
-Descrizione <input id="desc">
-
-<button onclick="insert()">Inserisci</button>
+</div>
 
 <script>
 
-var api="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCountdowns?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+const API_SELECT="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCountdowns?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+const API_DELETE="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/DeleteCountdown?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==&id="
+
+const API_INSERT="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/InsertCountdown?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
 
 function load(){
 
-fetch(api+"GetCountdowns")
+fetch(API_SELECT)
 .then(r=>r.json())
-.then(d=>{
+.then(data=>{
 
 let tb=document.querySelector("#tab tbody")
+
 tb.innerHTML=""
 
-d.forEach(x=>{
+data.forEach(x=>{
 
 tb.innerHTML+=`
 <tr onclick="openCountdown(${x.id})">
+
 <td>${x.id}</td>
 <td>${x.data}</td>
 <td>${x.descrizione}</td>
-<td><button onclick="del(${x.id});event.stopPropagation()">X</button></td>
+
+<td>
+
+<button class="delete"
+onclick="del(${x.id});event.stopPropagation();">
+Delete
+</button>
+
+</td>
+
 </tr>`
 
 })
@@ -62,19 +155,26 @@ tb.innerHTML+=`
 
 function insert(){
 
-fetch(api+"InsertCountdown",{
+let d=document.getElementById("data").value
+let desc=document.getElementById("desc").value
+
+fetch(API_INSERT,{
 method:"POST",
+headers:{'Content-Type':'application/json'},
 body:JSON.stringify({
-data:document.getElementById("data").value,
-descrizione:document.getElementById("desc").value
+data:d,
+descrizione:desc
 })
-}).then(()=>load())
+})
+.then(()=>load())
 
 }
 
 function del(id){
 
-fetch(api+"DeleteCountdown?id="+id)
+if(!confirm("Cancellare countdown?")) return
+
+fetch(API_DELETE+id)
 .then(()=>load())
 
 }
