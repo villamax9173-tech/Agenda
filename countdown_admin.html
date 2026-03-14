@@ -153,20 +153,46 @@ Delete
 
 }
 
-function insert(){
+async function insert(){
 
 let d=document.getElementById("data").value
 let desc=document.getElementById("desc").value
 
-fetch(API_INSERT,{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-data:d,
+if(!d || !desc){
+alert("Inserire data e descrizione")
+return
+}
+
+// fix formato data
+let iso=new Date(d).toISOString()
+
+let payload={
+data:iso,
 descrizione:desc
+}
+
+try{
+
+let r=await fetch(API_INSERT,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(payload)
 })
-})
-.then(()=>load())
+
+let txt=await r.text()
+
+console.log("Insert result:",txt)
+
+load()
+
+}catch(err){
+
+console.error(err)
+alert("Errore insert")
+
+}
 
 }
 
