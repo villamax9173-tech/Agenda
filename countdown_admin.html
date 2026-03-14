@@ -158,22 +158,12 @@ async function insert(){
 let d=document.getElementById("data").value
 let desc=document.getElementById("desc").value
 
-if(!d || !desc){
-alert("Inserire data e descrizione")
-return
-}
-
-// fix formato data
-let iso=new Date(d).toISOString()
-
 let payload={
-data:iso,
+data:new Date(d).toISOString(),
 descrizione:desc
 }
 
-try{
-
-let r=await fetch(API_INSERT,{
+await fetch(API_INSERT,{
 method:"POST",
 headers:{
 "Content-Type":"application/json"
@@ -181,18 +171,7 @@ headers:{
 body:JSON.stringify(payload)
 })
 
-let txt=await r.text()
-
-console.log("Insert result:",txt)
-
 load()
-
-}catch(err){
-
-console.error(err)
-alert("Errore insert")
-
-}
 
 }
 
