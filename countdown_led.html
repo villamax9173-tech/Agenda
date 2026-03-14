@@ -1,14 +1,37 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
+
+<meta charset="utf-8">
+
 <style>
-body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
-.titolo{font-size:32px;margin-top:40px}
-.clock img{width:60px}
-.sep{font-size:80px;padding:0 10px}
+
+body{
+background:black;
+color:#ffff66;
+font-family:Verdana;
+text-align:center;
+}
+
+.titolo{
+font-size:36px;
+margin-top:60px;
+}
+
+.clock img{
+width:70px;
+}
+
+.sep{
+font-size:90px;
+padding:0 15px;
+}
+
 </style>
+
 </head>
+
 <body>
 
 <div class="titolo" id="titolo"></div>
@@ -16,6 +39,7 @@ body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
 <br><br>
 
 <div class="clock">
+
 <img id="gg_mgl" src="imm/0.gif">
 <img id="gg_cent" src="imm/0.gif">
 <img id="gg_dec" src="imm/0.gif">
@@ -35,27 +59,34 @@ body{background:black;color:#ffff66;font-family:Verdana;text-align:center}
 
 <img id="ss_dec" src="imm/0.gif">
 <img id="ss_un" src="imm/0.gif">
+
 </div>
 
 <script>
 
-var api="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCountdownById?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+const API_GET="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCountdownById?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==&id="
 
 var url=new URL(window.location.href)
 var id=url.searchParams.get("id")
-var targetDate
 
-loadData()
+var targetDate=null
+
+load()
+
 setInterval(update,1000)
-setInterval(loadData,60000)
 
-function loadData(){
-fetch(api+"GetCountdownById?id="+id)
+function load(){
+
+fetch(API_GET+id)
 .then(r=>r.json())
 .then(d=>{
+
 document.getElementById("titolo").innerText=d.descrizione
+
 targetDate=new Date(d.data)
+
 })
+
 }
 
 function update(){
@@ -63,33 +94,41 @@ function update(){
 if(!targetDate) return
 
 var now=new Date()
+
 var diff=targetDate-now
+
 if(diff<0) diff=0
 
-var giorni=Math.floor(diff/1000/60/60/24)
-var ore=Math.floor(diff/1000/60/60)%24
-var min=Math.floor(diff/1000/60)%60
-var sec=Math.floor(diff/1000)%60
+var g=Math.floor(diff/1000/60/60/24)
+var h=Math.floor(diff/1000/60/60)%24
+var m=Math.floor(diff/1000/60)%60
+var s=Math.floor(diff/1000)%60
 
-set4("gg",giorni)
-set2("hh",ore)
-set2("mm",min)
-set2("ss",sec)
+set4("gg",g)
+set2("hh",h)
+set2("mm",m)
+set2("ss",s)
 
 }
 
-function set2(pref,val){
-val=("0"+val).slice(-2)
-document.getElementById(pref+"_dec").src="imm/"+val[0]+".gif"
-document.getElementById(pref+"_un").src="imm/"+val[1]+".gif"
+function set2(p,v){
+
+v=("0"+v).slice(-2)
+
+document.getElementById(p+"_dec").src="imm/"+v[0]+".gif"
+document.getElementById(p+"_un").src="imm/"+v[1]+".gif"
+
 }
 
-function set4(pref,val){
-val=("000"+val).slice(-4)
-document.getElementById(pref+"_mgl").src="imm/"+val[0]+".gif"
-document.getElementById(pref+"_cent").src="imm/"+val[1]+".gif"
-document.getElementById(pref+"_dec").src="imm/"+val[2]+".gif"
-document.getElementById(pref+"_un").src="imm/"+val[3]+".gif"
+function set4(p,v){
+
+v=("000"+v).slice(-4)
+
+document.getElementById(p+"_mgl").src="imm/"+v[0]+".gif"
+document.getElementById(p+"_cent").src="imm/"+v[1]+".gif"
+document.getElementById(p+"_dec").src="imm/"+v[2]+".gif"
+document.getElementById(p+"_un").src="imm/"+v[3]+".gif"
+
 }
 
 </script>
