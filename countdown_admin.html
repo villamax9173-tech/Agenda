@@ -2,7 +2,7 @@
 <html>
 
 <head>
-
+<link rel="stylesheet" href="menu.css">
 <meta charset="utf-8">
 
 <style>
@@ -70,7 +70,7 @@ margin-right:10px;
 </head>
 
 <body>
-
+ <div id="menu-container"></div>
 <h1>Countdown Manager</h1>
 
 <div class="panel">
@@ -107,7 +107,15 @@ Descrizione
 </table>
 
 </div>
+<script>
 
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
+
+</script>
 <script>
 
 const API_SELECT="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCountdowns?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
