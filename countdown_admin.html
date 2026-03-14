@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table{border-collapse:collapse;font-family:verdana}
+td,th{border:1px solid #ccc;padding:6px}
+tr:hover{background:#f0f0f0;cursor:pointer}
+</style>
+</head>
+<body>
+
+<h2>Countdown Admin</h2>
+
+<table id="tab">
+<thead>
+<tr>
+<th>ID</th>
+<th>Data</th>
+<th>Descrizione</th>
+<th></th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<br>
+
+Data <input id="data" type="datetime-local">
+Descrizione <input id="desc">
+<button onclick="insert()">Inserisci</button>
+
+<script>
+
+var api="https://YOURFUNCTION.azurewebsites.net/api/"
+
+function load(){
+
+fetch(api+"GetCountdowns")
+.then(r=>r.json())
+.then(d=>{
+
+let tb=document.querySelector("#tab tbody")
+tb.innerHTML=""
+
+d.forEach(x=>{
+
+tb.innerHTML+=`
+<tr onclick="openCountdown(${x.id})">
+
+<td>${x.id}</td>
+<td>${x.data}</td>
+<td>${x.descrizione}</td>
+
+<td>
+<button onclick="del(${x.id});event.stopPropagation()">X</button>
+</td>
+
+</tr>
+`
+})
+
+})
+}
+
+function insert(){
+
+fetch(api+"InsertCountdown",{
+method:"POST",
+body:JSON.stringify({
+data:document.getElementById("data").value,
+descrizione:document.getElementById("desc").value
+})
+}).then(()=>load())
+}
+
+function del(id){
+fetch(api+"DeleteCountdown?id="+id)
+.then(()=>load())
+}
+
+function openCountdown(id){
+window.location="countdown_led.html?id="+id
+}
+
+load()
+
+</script>
+</body>
+</html>
