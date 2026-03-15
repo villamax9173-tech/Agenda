@@ -1,49 +1,84 @@
-<html xmlns="http://www.w3.org/1999/xhtml" >
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head runat="server">
     <title>www.villamax.it - Massimo Villa webSite</title>
-    <LINK REL="SHORTCUT ICON" href="Gundam2.ico">
-</head>
-<body style="background-color: black" leftmargin="0" topmargin="0">
-     
-        <audio src="tp.mp3" preload="auto" autoplay ></audio>
-        <table align="center" width="100%">
-            <tr>
-                <td colspan=3 align="left" style="height: 15px">
-                    <img height="20" src="unipixel.gif" /></td>
-            </tr>
-            <tr>  
-                         
-                <td colspan=3 align="center">
-                    <img alt="www.villamax.it" src="villamax64.gif" /></td>
-                 <td>a</td>              
-            </tr>
-            <tr>
-               
-                <td colspan=3> 
-                    <img height="40" src="unipixel.gif" /></td>
-            </tr>
-            <tr> <td width="33%" align="center" valign="top" style="height: 394px"><table width="100%">
-                    <tr>
-                        <td >
-                            <img height="20" src="unipixel.gif" /></td>
-                    </tr>
-                    <tr>
-                    
-                                                <td align="center" valign="middle">
-                        </td>
-                    </tr>
-                </table>
-            </td>    
-                <td align="center" valign="top" width="33%" style="height: 394px">
-              
-                    <br />
-                <img src="tp2.jpg" />
-                </td>
-                     <td width="33%" style="height: 394px">a</td>     
-            </tr>
-        </table>
+    <link rel="shortcut icon" href="Gundam2.ico">
 
-     
+    <script>
+        window.addEventListener("DOMContentLoaded", function () {
+            fetch("menu.html")
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById("menuContainer").innerHTML = data;
+                });
+        });
+    </script>
+</head>
+
+<body style="background-color: black" leftmargin="0" topmargin="0">
+
+<audio src="tp.mp3" preload="auto" autoplay></audio>
+
+<table align="center" width="100%">
+<tr>
+<td colspan="3" align="left" style="height: 15px">
+<img height="20" src="unipixel.gif" />
+</td>
+</tr>
+
+<tr>
+<td colspan="3" align="center">
+<img alt="www.villamax.it" src="villamax64.gif" />
+</td>
+<td>a</td>
+</tr>
+
+<!-- MENU -->
+<tr>
+<td colspan="3" align="center">
+<div id="menuContainer"></div>
+
+<span id="versione" style="color:#9C0523;font-family:Verdana;font-size:X-Small;">
+Versione 20260214
+</span>
+
+</td>
+</tr>
+
+<tr>
+<td colspan="3">
+<img height="40" src="unipixel.gif" />
+</td>
+</tr>
+
+<tr>
+
+<td width="33%" align="center" valign="top" style="height:394px">
+<table width="100%">
+<tr>
+<td>
+<img height="20" src="unipixel.gif" />
+</td>
+</tr>
+
+<tr>
+<td align="center" valign="middle">
+</td>
+</tr>
+
+</table>
+</td>
+
+<td align="center" valign="top" width="33%" style="height:394px">
+
+<br>
+<img src="tp2.jpg">
+
+</td>
+
+<td width="33%" style="height:394px">a</td>
+
+</tr>
+</table>
+
 </body>
 </html>
-
