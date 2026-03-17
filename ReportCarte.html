@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-   <link rel="stylesheet" href="menu.css">
 <meta charset="UTF-8">
 <title>Report Carte</title>
 
@@ -56,19 +55,24 @@ tr:nth-child(even) {
     font-size: 18px;
     font-weight: bold;
 }
+
+.cart { color: #0b3d91; }      /* blu scuro */
+.nexi { color: #66b3ff; }      /* blu chiaro */
+.tot { color: #2e8b57; }       /* verde */
+
 </style>
 </head>
 
 <body>
-<div id="menu-container"></div>
+
 <div class="container">
 
 <h1>💳 Report Spese Carte</h1>
 
 <div class="card totali">
-    <div>Cartimpronta: <span id="totCart"></span></div>
-    <div>Nexi: <span id="totNexi"></span></div>
-    <div>Totale: <span id="totAll"></span></div>
+    <div class="cart">Cartimpronta: <span id="totCart"></span></div>
+    <div class="nexi">Nexi: <span id="totNexi"></span></div>
+    <div class="tot">Totale: <span id="totAll"></span></div>
 </div>
 
 <div class="card">
@@ -76,6 +80,7 @@ tr:nth-child(even) {
 </div>
 
 <div class="card">
+    <h3>📅 Dettaglio Mensile</h3>
     <table id="tabella">
         <thead>
             <tr>
@@ -90,23 +95,38 @@ tr:nth-child(even) {
     </table>
 </div>
 
+<div class="card">
+    <h3>📊 Totali per Anno</h3>
+    <table id="tabellaAnno">
+        <thead>
+            <tr>
+                <th>Anno</th>
+                <th>Cartimpronta</th>
+                <th>Nexi</th>
+                <th>Totale</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
+
+</div>
+
 <script>
 
-fetch("menu.html")
-.then(res => res.text())
-.then(data => {
-document.getElementById("menu-container").innerHTML = data;
-});
+const url = "https://TUO_ENDPOINT/GetReportCarte";
 
-</script>
-<script>
-
-const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetReportCarte?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const mesi = [
+    "", "Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno",
+    "Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"
+];
 
 fetch(url)
 .then(r => r.json())
 .then(data => {
+
+    // 🔽 ORDINA DESC
+    data.sort((a,b) => (b.anno*100 + b.mese) - (a.anno*100 + a.mese));
 
     let labels = [];
     let cart = [];
@@ -116,27 +136,36 @@ fetch(url)
     let totCart = 0;
     let totNexi = 0;
 
+    let perAnno = {};
+
     const tbody = document.querySelector("#tabella tbody");
 
     data.forEach(r => {
 
         let label = r.anno + "-" + String(r.mese).padStart(2,'0');
 
-        labels.push(label);
-        cart.push(r.cartimpronta);
-        nexi.push(r.nexi);
-        tot.push(r.totale);
+        labels.unshift(label); // grafico resta crescente
+        cart.unshift(r.cartimpronta);
+        nexi.unshift(r.nexi);
+        tot.unshift(r.totale);
 
         totCart += r.cartimpronta;
         totNexi += r.nexi;
 
+        // aggregazione per anno
+        if (!perAnno[r.anno]) {
+            perAnno[r.anno] = { cart:0, nexi:0 };
+        }
+        perAnno[r.anno].cart += r.cartimpronta;
+        perAnno[r.anno].nexi += r.nexi;
+
         tbody.innerHTML += `
             <tr>
                 <td>${r.anno}</td>
-                <td>${r.mese}</td>
-                <td>${format(r.cartimpronta)}</td>
-                <td>${format(r.nexi)}</td>
-                <td>${format(r.totale)}</td>
+                <td>${mesi[r.mese]}</td>
+                <td class="cart">${format(r.cartimpronta)}</td>
+                <td class="nexi">${format(r.nexi)}</td>
+                <td class="tot">${format(r.totale)}</td>
             </tr>
         `;
     });
@@ -145,6 +174,7 @@ fetch(url)
     document.getElementById("totNexi").innerText = format(totNexi);
     document.getElementById("totAll").innerText = format(totCart + totNexi);
 
+    // 📊 GRAFICO
     new Chart(document.getElementById("grafico"), {
         type: 'line',
         data: {
@@ -153,21 +183,47 @@ fetch(url)
                 {
                     label: 'Cartimpronta',
                     data: cart,
+                    borderColor: '#0b3d91',
+                    backgroundColor: '#0b3d91',
                     borderWidth: 2
                 },
                 {
                     label: 'Nexi',
                     data: nexi,
+                    borderColor: '#66b3ff',
+                    backgroundColor: '#66b3ff',
                     borderWidth: 2
                 },
                 {
                     label: 'Totale',
                     data: tot,
+                    borderColor: '#2e8b57',
+                    backgroundColor: '#2e8b57',
                     borderWidth: 3
                 }
             ]
         }
     });
+
+    // 📊 TABELLA ANNUALE
+    const tbodyAnno = document.querySelector("#tabellaAnno tbody");
+
+    Object.keys(perAnno)
+        .sort((a,b)=> b-a)
+        .forEach(anno => {
+
+            let c = perAnno[anno].cart;
+            let n = perAnno[anno].nexi;
+
+            tbodyAnno.innerHTML += `
+                <tr>
+                    <td>${anno}</td>
+                    <td class="cart">${format(c)}</td>
+                    <td class="nexi">${format(n)}</td>
+                    <td class="tot">${format(c+n)}</td>
+                </tr>
+            `;
+        });
 
 });
 
