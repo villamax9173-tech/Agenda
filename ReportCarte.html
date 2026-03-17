@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+   <link rel="stylesheet" href="menu.css">
+<meta charset="UTF-8">
+<title>Report Carte</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 20px;
+    background: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 5px rgba(0,0,0,0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    text-align: right;
+}
+
+th {
+    background: #333;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+.totali {
+    display: flex;
+    justify-content: space-around;
+    font-size: 18px;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+<div id="menu-container"></div>
+<div class="container">
+
+<h1>💳 Report Spese Carte</h1>
+
+<div class="card totali">
+    <div>Cartimpronta: <span id="totCart"></span></div>
+    <div>Nexi: <span id="totNexi"></span></div>
+    <div>Totale: <span id="totAll"></span></div>
+</div>
+
+<div class="card">
+    <canvas id="grafico"></canvas>
+</div>
+
+<div class="card">
+    <table id="tabella">
+        <thead>
+            <tr>
+                <th>Anno</th>
+                <th>Mese</th>
+                <th>Cartimpronta</th>
+                <th>Nexi</th>
+                <th>Totale</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+</div>
+<script>
+
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
+
+</script>
+<script>
+
+const url = "https://TUO_ENDPOINT/GetReportCarte";
+
+fetch(url)
+.then(r => r.json())
+.then(data => {
+
+    let labels = [];
+    let cart = [];
+    let nexi = [];
+    let tot = [];
+
+    let totCart = 0;
+    let totNexi = 0;
+
+    const tbody = document.querySelector("#tabella tbody");
+
+    data.forEach(r => {
+
+        let label = r.anno + "-" + String(r.mese).padStart(2,'0');
+
+        labels.push(label);
+        cart.push(r.cartimpronta);
+        nexi.push(r.nexi);
+        tot.push(r.totale);
+
+        totCart += r.cartimpronta;
+        totNexi += r.nexi;
+
+        tbody.innerHTML += `
+            <tr>
+                <td>${r.anno}</td>
+                <td>${r.mese}</td>
+                <td>${format(r.cartimpronta)}</td>
+                <td>${format(r.nexi)}</td>
+                <td>${format(r.totale)}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById("totCart").innerText = format(totCart);
+    document.getElementById("totNexi").innerText = format(totNexi);
+    document.getElementById("totAll").innerText = format(totCart + totNexi);
+
+    new Chart(document.getElementById("grafico"), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Cartimpronta',
+                    data: cart,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Nexi',
+                    data: nexi,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Totale',
+                    data: tot,
+                    borderWidth: 3
+                }
+            ]
+        }
+    });
+
+});
+
+function format(num) {
+    let n = Math.round(num).toString();
+    return n.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+</script>
+
+</body>
+</html>
