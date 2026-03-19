@@ -1,8 +1,147 @@
-<!-- 🔵 CARTIMPRONTA -->
-<div class="card">
-    <h3 class="cart">💳 Dettaglio Cartimpronta</h3>
-    <canvas id="graficoCart"></canvas>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<link rel="stylesheet" href="menu.css">
+<meta charset="UTF-8">
+<title>Report Carte</title>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    font-family: Arial;
+    margin: 20px;
+    background: #f5f5f5;
+}
+
+h1 {
+    text-align: center;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    background: #ddd;
+    margin: 5px;
+    border-radius: 8px;
+    font-weight: bold;
+}
+
+.tab.active {
+    background: #333;
+    color: white;
+}
+
+.hidden {
+    display: none;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    text-align: right;
+}
+
+th {
+    background: #333;
+    color: white;
+}
+
+tr:nth-child(even) {
+    background: #f2f2f2;
+}
+
+.totali {
+    display: flex;
+    justify-content: space-around;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.cart { color: #0b3d91; }
+.nexi { color: #66b3ff; }
+.tot { color: #2e8b57; }
+
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<div class="container">
+
+<h1>💳 Report Spese Carte</h1>
+
+<!-- TAB -->
+<div class="tabs">
+    <div class="tab active" onclick="showTab('totale')">Totale</div>
+    <div class="tab" onclick="showTab('cart')">Cartimpronta</div>
+    <div class="tab" onclick="showTab('nexi')">Nexi</div>
+</div>
+
+<!-- ===================== TOTALE ===================== -->
+<div id="totale" class="tab-content">
+
+<div class="card totali">
+    <div class="cart">Cartimpronta: <span id="totCart"></span></div>
+    <div class="nexi">Nexi: <span id="totNexi"></span></div>
+    <div class="tot">Totale: <span id="totAll"></span></div>
+</div>
+
+<div class="card">
+    <canvas id="grafico"></canvas>
+</div>
+
+<div class="card">
+    <h3>📅 Dettaglio Mensile</h3>
+    <table id="tabella">
+        <thead>
+            <tr>
+                <th>Anno</th>
+                <th>Mese</th>
+                <th>Cartimpronta</th>
+                <th>Nexi</th>
+                <th>Totale</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+</div>
+
+<!-- ===================== CARTIMPRONTA ===================== -->
+<div id="cart" class="tab-content hidden">
+
+<div class="card">
+    <canvas id="graficoCart"></canvas>
+</div>
+
+<div class="card">
     <table id="tabellaCart">
         <thead>
             <tr>
@@ -15,11 +154,16 @@
     </table>
 </div>
 
-<!-- 🔷 NEXI -->
-<div class="card">
-    <h3 class="nexi">💳 Dettaglio Nexi</h3>
-    <canvas id="graficoNexi"></canvas>
+</div>
 
+<!-- ===================== NEXI ===================== -->
+<div id="nexi" class="tab-content hidden">
+
+<div class="card">
+    <canvas id="graficoNexi"></canvas>
+</div>
+
+<div class="card">
     <table id="tabellaNexi">
         <thead>
             <tr>
@@ -31,3 +175,120 @@
         <tbody></tbody>
     </table>
 </div>
+
+</div>
+
+</div>
+
+<script>
+// MENU
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+    document.getElementById("menu-container").innerHTML = data;
+});
+
+// TAB SWITCH
+function showTab(id) {
+    document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
+
+    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
+    event.target.classList.add("active");
+}
+
+const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetReportCarte?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+const mesi = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+
+fetch(url)
+.then(r => r.json())
+.then(data => {
+
+    data.sort((a,b) => (b.anno*100 + b.mese) - (a.anno*100 + a.mese));
+
+    let labels=[], cart=[], nexi=[], tot=[];
+    let cartLabels=[], cartData=[];
+    let nexiLabels=[], nexiData=[];
+
+    let totCart=0, totNexi=0;
+
+    const tbody = document.querySelector("#tabella tbody");
+
+    data.forEach(r => {
+
+        let label = r.anno + "-" + String(r.mese).padStart(2,'0');
+
+        labels.unshift(label);
+        cart.unshift(r.cartimpronta);
+        nexi.unshift(r.nexi);
+        tot.unshift(r.totale);
+
+        cartLabels.unshift(label);
+        cartData.unshift(r.cartimpronta);
+
+        nexiLabels.unshift(label);
+        nexiData.unshift(r.nexi);
+
+        totCart += r.cartimpronta;
+        totNexi += r.nexi;
+
+        tbody.innerHTML += `
+        <tr>
+            <td>${r.anno}</td>
+            <td>${mesi[r.mese]}</td>
+            <td class="cart">${format(r.cartimpronta)}</td>
+            <td class="nexi">${format(r.nexi)}</td>
+            <td class="tot">${format(r.totale)}</td>
+        </tr>`;
+
+        document.querySelector("#tabellaCart tbody").innerHTML += `
+        <tr>
+            <td>${r.anno}</td>
+            <td>${mesi[r.mese]}</td>
+            <td class="cart">${format(r.cartimpronta)}</td>
+        </tr>`;
+
+        document.querySelector("#tabellaNexi tbody").innerHTML += `
+        <tr>
+            <td>${r.anno}</td>
+            <td>${mesi[r.mese]}</td>
+            <td class="nexi">${format(r.nexi)}</td>
+        </tr>`;
+    });
+
+    document.getElementById("totCart").innerText = format(totCart);
+    document.getElementById("totNexi").innerText = format(totNexi);
+    document.getElementById("totAll").innerText = format(totCart + totNexi);
+
+    new Chart(document.getElementById("grafico"), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label:'Cartimpronta', data:cart, borderColor:'#0b3d91' },
+                { label:'Nexi', data:nexi, borderColor:'#66b3ff' },
+                { label:'Totale', data:tot, borderColor:'#2e8b57' }
+            ]
+        }
+    });
+
+    new Chart(document.getElementById("graficoCart"), {
+        type: 'bar',
+        data: { labels: cartLabels, datasets:[{label:'Cartimpronta', data:cartData, backgroundColor:'#0b3d91'}]}
+    });
+
+    new Chart(document.getElementById("graficoNexi"), {
+        type: 'bar',
+        data: { labels: nexiLabels, datasets:[{label:'Nexi', data:nexiData, backgroundColor:'#66b3ff'}]}
+    });
+
+});
+
+function format(num) {
+    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+</script>
+
+</body>
+</html>
