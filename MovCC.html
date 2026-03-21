@@ -2,43 +2,90 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Dashboard Conto Corrente</title>
+<title>Movimenti Conto Corrente</title>
 
 <link rel="stylesheet" href="menu.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body { font-family: Arial; margin:20px; background:#f5f5f5;}
-h1 { text-align:center;}
+body {
+    font-family: Arial;
+    margin: 20px;
+    background: #f5f5f5;
+}
 
-.container { max-width:1200px; margin:auto;}
+h1 {
+    text-align: center;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
 
 .card {
-    background:white;
-    padding:15px;
-    margin-bottom:20px;
-    border-radius:10px;
-    box-shadow:0 0 8px rgba(0,0,0,0.1);
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.08);
 }
 
+/* TABELLA SOBRIA */
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+}
+
+th {
+    background: #2c3e50;
+    color: white;
+    text-align: left;
+}
+
+td {
+    border-bottom: 1px solid #eee;
+}
+
+tr:hover {
+    background: #fafafa;
+}
+
+/* IMPORTI */
+.importo {
+    text-align: right;
+    font-weight: bold;
+}
+
+.dare {
+    color: #c0392b;   /* rosso soft */
+}
+
+.avere {
+    color: #2e7d32;   /* verde soft */
+}
+
+/* DATA */
+.data {
+    color: #666;
+    font-size: 13px;
+}
+
+/* CAUSALE */
+.causale {
+    font-size: 14px;
+}
+
+/* GRAFICI */
 .grid {
-    display:grid;
+    display: grid;
     grid-template-columns: 1fr 1fr;
-    gap:20px;
+    gap: 20px;
 }
-
-table { width:100%; border-collapse:collapse;}
-th,td { padding:8px; text-align:center;}
-th { background:#333; color:white;}
-
-tr:nth-child(even){background:#f2f2f2;}
-
-.dare { color:#c0392b; font-weight:bold;}
-.avere { color:#27ae60; font-weight:bold;}
-
-.big { background:#ffe0e0;}
-.medium { background:#fff6cc;}
-.small { background:#e6ffe6;}
 
 </style>
 </head>
@@ -48,9 +95,23 @@ tr:nth-child(even){background:#f2f2f2;}
 <div id="menu-container"></div>
 
 <div class="container">
-<h1>📊 Dashboard Conto Corrente</h1>
+<h1>Movimenti Conto Corrente</h1>
 
-<!-- GRAFICI -->
+<!-- 📋 TABELLA -->
+<div class="card">
+<table id="tabella">
+<thead>
+<tr>
+<th>Data</th>
+<th>Causale</th>
+<th style="text-align:right">Importo</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+<!-- 📊 GRAFICI -->
 <div class="grid">
 
 <div class="card">
@@ -66,23 +127,8 @@ tr:nth-child(even){background:#f2f2f2;}
 </div>
 
 <div class="card">
-    <h3>Spese per giorno</h3>
+    <h3>Spesa per giorno</h3>
     <canvas id="barChart"></canvas>
-</div>
-
-<!-- TABELLA -->
-<div class="card">
-<table id="tabella">
-<thead>
-<tr>
-<th>Data</th>
-<th>Causale</th>
-<th>Importo</th>
-<th>Tipo</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
 </div>
 
 </div>
@@ -137,17 +183,14 @@ function renderTabella(){
     dati.slice().reverse().forEach(r=>{
 
         let tipoClass = r.tipo==="D"?"dare":"avere";
-        let icon = r.tipo==="D"?"💸":"💰";
-
-        let abs=Math.abs(r.importo);
-        let sizeClass = abs>200?"big":abs>50?"medium":"small";
 
         tbody.innerHTML+=`
-        <tr class="${tipoClass} ${sizeClass}">
-            <td>${r.label}</td>
-            <td style="text-align:left">${r.causale}</td>
-            <td>${r.importo.toFixed(2)}</td>
-            <td>${icon}</td>
+        <tr>
+            <td class="data">${r.label}</td>
+            <td class="causale">${r.causale}</td>
+            <td class="importo ${tipoClass}">
+                ${r.importo.toFixed(2)}
+            </td>
         </tr>`;
     });
 }
@@ -178,35 +221,24 @@ function creaGrafici(){
         perGiorno[r.label]+=Math.abs(r.importo);
     });
 
-    // SALDO
     new Chart(document.getElementById("saldoChart"),{
         type:"line",
-        data:{
-            labels:labels,
-            datasets:[{label:"Saldo",data:saldo}]
-        }
+        data:{labels:labels,datasets:[{label:"Saldo",data:saldo}]}
     });
 
-    // TORTA
     new Chart(document.getElementById("pieChart"),{
         type:"pie",
         data:{
             labels:["Entrate","Uscite"],
-            datasets:[{
-                data:[entrate,uscite]
-            }]
+            datasets:[{data:[entrate,uscite]}]
         }
     });
 
-    // BAR
     new Chart(document.getElementById("barChart"),{
         type:"bar",
         data:{
             labels:Object.keys(perGiorno),
-            datasets:[{
-                label:"Speso",
-                data:Object.values(perGiorno)
-            }]
+            datasets:[{label:"Speso",data:Object.values(perGiorno)}]
         }
     });
 
