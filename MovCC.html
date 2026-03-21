@@ -2,84 +2,43 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Movimenti Conto Corrente</title>
+<title>Dashboard Conto Corrente</title>
 
 <link rel="stylesheet" href="menu.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body {
-    font-family: Arial;
-    margin: 20px;
-    background: #f5f5f5;
-}
+body { font-family: Arial; margin:20px; background:#f5f5f5;}
+h1 { text-align:center;}
 
-h1 {
-    text-align: center;
-}
-
-.container {
-    max-width: 1200px;
-    margin: auto;
-}
+.container { max-width:1200px; margin:auto;}
 
 .card {
-    background: white;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    background:white;
+    padding:15px;
+    margin-bottom:20px;
+    border-radius:10px;
+    box-shadow:0 0 8px rgba(0,0,0,0.1);
 }
 
-.filters {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 10px;
+.grid {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:20px;
 }
 
-input, select {
-    padding: 5px;
-}
+table { width:100%; border-collapse:collapse;}
+th,td { padding:8px; text-align:center;}
+th { background:#333; color:white;}
 
-button {
-    padding: 6px 10px;
-    border: none;
-    border-radius: 5px;
-    background: #333;
-    color: white;
-    cursor: pointer;
-}
+tr:nth-child(even){background:#f2f2f2;}
 
-button:hover {
-    background: #555;
-}
+.dare { color:#c0392b; font-weight:bold;}
+.avere { color:#27ae60; font-weight:bold;}
 
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th, td {
-    padding: 8px;
-    text-align: center;
-}
-
-th {
-    background: #333;
-    color: white;
-    cursor: pointer;
-}
-
-tr:nth-child(even) {
-    background: #f2f2f2;
-}
-
-.dare { color: #c0392b; font-weight: bold; }
-.avere { color: #27ae60; font-weight: bold; }
-
-.big { background: #ffe0e0; }     /* importi alti */
-.medium { background: #fff6cc; }  /* medi */
-.small { background: #e6ffe6; }   /* piccoli */
+.big { background:#ffe0e0;}
+.medium { background:#fff6cc;}
+.small { background:#e6ffe6;}
 
 </style>
 </head>
@@ -89,92 +48,103 @@ tr:nth-child(even) {
 <div id="menu-container"></div>
 
 <div class="container">
-<h1>📊 Movimenti Conto Corrente</h1>
+<h1>📊 Dashboard Conto Corrente</h1>
+
+<!-- GRAFICI -->
+<div class="grid">
 
 <div class="card">
-
-<div class="filters">
-    <select id="tipo">
-        <option value="T">Tutti</option>
-        <option value="D">Dare</option>
-        <option value="A">Avere</option>
-    </select>
-
-    <input type="number" id="min" placeholder="Importo min">
-    <input type="number" id="max" placeholder="Importo max">
-
-    <button onclick="filtra()">Filtra</button>
-    <button onclick="reset()">Reset</button>
+    <h3>Saldo nel tempo</h3>
+    <canvas id="saldoChart"></canvas>
 </div>
 
+<div class="card">
+    <h3>Entrate vs Uscite</h3>
+    <canvas id="pieChart"></canvas>
+</div>
+
+</div>
+
+<div class="card">
+    <h3>Spese per giorno</h3>
+    <canvas id="barChart"></canvas>
+</div>
+
+<!-- TABELLA -->
+<div class="card">
 <table id="tabella">
 <thead>
 <tr>
-<th onclick="ordina(0)">ID</th>
-<th onclick="ordina(1)">Data</th>
-<th onclick="ordina(2)">Causale</th>
-<th onclick="ordina(3)">Importo</th>
-<th onclick="ordina(4)">Tipo</th>
+<th>Data</th>
+<th>Causale</th>
+<th>Importo</th>
+<th>Tipo</th>
 </tr>
 </thead>
 <tbody></tbody>
 </table>
-
 </div>
+
 </div>
 
 <script>
 // MENU
 fetch("menu.html")
-.then(r => r.text())
-.then(d => document.getElementById("menu-container").innerHTML = d);
+.then(r=>r.text())
+.then(d=>document.getElementById("menu-container").innerHTML=d);
 
-// 🔗 AZURE FUNCTION
 const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-let dati = [];
+let dati=[];
 
-// CARICA DATI
+const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+
 fetch(url)
-.then(r => r.json())
-.then(json => {
-    dati = json.map(r => {
+.then(r=>r.json())
+.then(json=>{
+
+    dati = json.map(r=>{
+        let d = normalizzaData(r.DataContabile);
+        let date = new Date(d);
+
         return {
-            id: r.id,
-            data: normalizzaData(r.DataContabile),
-            causale: (r.Causale || "").trim(),
+            data: date,
+            label: date.getDate()+" "+mesi[date.getMonth()],
+            causale: (r.Causale||"").trim(),
             importo: parseFloat(r.Importo),
             tipo: r.azione
         };
     });
 
-    render(dati);
+    dati.sort((a,b)=>a.data-b.data);
+
+    renderTabella();
+    creaGrafici();
 });
 
-// NORMALIZZA DATA (gestisce "poi 23")
-function normalizzaData(d) {
-    if (!d) return "";
-    let clean = d.replace(/[^\d-]/g, "");
-    return clean.length >= 10 ? clean.substring(0,10) : d;
+// NORMALIZZA DATA
+function normalizzaData(d){
+    if(!d) return "";
+    let clean = d.replace(/[^\d-]/g,"");
+    return clean.substring(0,10);
 }
 
-// RENDER
-function render(lista) {
-    const tbody = document.querySelector("#tabella tbody");
-    tbody.innerHTML = "";
+// TABELLA
+function renderTabella(){
+    const tbody=document.querySelector("#tabella tbody");
+    tbody.innerHTML="";
 
-    lista.forEach(r => {
+    dati.slice().reverse().forEach(r=>{
 
-        let tipoClass = r.tipo === "D" ? "dare" : "avere";
-        let icon = r.tipo === "D" ? "💸" : "💰";
+        let tipoClass = r.tipo==="D"?"dare":"avere";
+        let icon = r.tipo==="D"?"💸":"💰";
 
-        let abs = Math.abs(r.importo);
-        let sizeClass = abs > 200 ? "big" : abs > 50 ? "medium" : "small";
+        let abs=Math.abs(r.importo);
+        let sizeClass = abs>200?"big":abs>50?"medium":"small";
 
-        tbody.innerHTML += `
+        tbody.innerHTML+=`
         <tr class="${tipoClass} ${sizeClass}">
-            <td>${r.id}</td>
-            <td>${r.data}</td>
+            <td>${r.label}</td>
             <td style="text-align:left">${r.causale}</td>
             <td>${r.importo.toFixed(2)}</td>
             <td>${icon}</td>
@@ -182,46 +152,64 @@ function render(lista) {
     });
 }
 
-// FILTRI
-function filtra() {
-    let tipo = document.getElementById("tipo").value;
-    let min = parseFloat(document.getElementById("min").value) || -999999;
-    let max = parseFloat(document.getElementById("max").value) || 999999;
+// GRAFICI
+function creaGrafici(){
 
-    let filtrati = dati.filter(r => {
-        let okTipo = tipo === "T" || r.tipo === tipo;
-        let okImporto = r.importo >= min && r.importo <= max;
-        return okTipo && okImporto;
+    let labels=[];
+    let saldo=[];
+    let cumulato=0;
+
+    let entrate=0;
+    let uscite=0;
+
+    let perGiorno={};
+
+    dati.forEach(r=>{
+
+        cumulato+=r.importo;
+
+        labels.push(r.label);
+        saldo.push(cumulato);
+
+        if(r.importo>0) entrate+=r.importo;
+        else uscite+=Math.abs(r.importo);
+
+        if(!perGiorno[r.label]) perGiorno[r.label]=0;
+        perGiorno[r.label]+=Math.abs(r.importo);
     });
 
-    render(filtrati);
-}
-
-function reset() {
-    document.getElementById("tipo").value = "T";
-    document.getElementById("min").value = "";
-    document.getElementById("max").value = "";
-    render(dati);
-}
-
-// ORDINAMENTO
-function ordina(n) {
-    let rows = Array.from(document.querySelectorAll("#tabella tbody tr"));
-
-    rows.sort((a,b) => {
-        let x = a.children[n].innerText;
-        let y = b.children[n].innerText;
-
-        let nx = parseFloat(x);
-        let ny = parseFloat(y);
-
-        if (!isNaN(nx) && !isNaN(ny)) return ny - nx;
-        return y.localeCompare(x);
+    // SALDO
+    new Chart(document.getElementById("saldoChart"),{
+        type:"line",
+        data:{
+            labels:labels,
+            datasets:[{label:"Saldo",data:saldo}]
+        }
     });
 
-    let tbody = document.querySelector("#tabella tbody");
-    tbody.innerHTML = "";
-    rows.forEach(r => tbody.appendChild(r));
+    // TORTA
+    new Chart(document.getElementById("pieChart"),{
+        type:"pie",
+        data:{
+            labels:["Entrate","Uscite"],
+            datasets:[{
+                data:[entrate,uscite]
+            }]
+        }
+    });
+
+    // BAR
+    new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+            labels:Object.keys(perGiorno),
+            datasets:[{
+                label:"Speso",
+                data:Object.values(perGiorno)
+            }]
+        }
+    });
+
 }
 </script>
 
