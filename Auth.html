@@ -2,70 +2,79 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <title>Test Bitcoin Data Function</title>
-   <script src="https://alcdn.msauth.net/browser/2.42.0/js/msal-browser.min.js"></script>
+    <title>Test GetBitcoinDataDelegated</title>
+    <!-- Carica MSAL Browser versione stabile -->
+    <script src="https://alcdn.msauth.net/browser/2.40.0/js/msal-browser.min.js" defer></script>
 </head>
 <body>
     <h1>Test GetBitcoinDataDelegated</h1>
     <button id="loginBtn">Login e Carica Dati</button>
     <pre id="output"></pre>
 
-    <script>
-        // -------------------------------
-        // 1️⃣ Configurazione MSAL
-        // -------------------------------
-        const msalConfig = {
-            auth: {
-                clientId: "58af58ed-6ebf-433b-86b0-e2c974ce816d", // App registrata in Azure AD
-                authority: "https://login.microsoftonline.com/a9473751-af53-414d-a21d-fece59051a04",
-                redirectUri: window.location.href
-            }
-        };
+    <script defer>
+        window.onload = () => {
+            const loginBtn = document.getElementById("loginBtn");
+            const output = document.getElementById("output");
 
-        const msalInstance = new msal.PublicClientApplication(msalConfig);
-
-        // Scope richiesti
-        const loginRequest = {
-            scopes: ["Files.Read.All", "Sites.Read.All", "User.Read"]
-        };
-
-        const loginBtn = document.getElementById("loginBtn");
-        const output = document.getElementById("output");
-
-        loginBtn.addEventListener("click", async () => {
-            try {
-                // -------------------------------
-                // 2️⃣ Login popup
-                // -------------------------------
-                const loginResponse = await msalInstance.loginPopup(loginRequest);
-                const accessToken = loginResponse.accessToken;
-
-                output.textContent = "Login effettuato. Token ottenuto.\nChiamata alla Function...";
-
-                // -------------------------------
-                // 3️⃣ Chiamata alla Function con token
-                // -------------------------------
-                const functionUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetBitcoinDataDelegated";
-
-                const res = await fetch(functionUrl, {
-                    headers: {
-                        "Authorization": "Bearer " + accessToken
-                    }
-                });
-
-                if (!res.ok) {
-                    output.textContent += `\nErrore chiamata Function: ${res.status} ${res.statusText}`;
-                    return;
+            // -------------------------------
+            // 1️⃣ Configurazione MSAL
+            // -------------------------------
+            const msalConfig = {
+                auth: {
+                    clientId: "58af58ed-6ebf-433b-86b0-e2c974ce816d", // App registrata Azure AD
+                    authority: "https://login.microsoftonline.com/a9473751-af53-414d-a21d-fece59051a04",
+                    redirectUri: window.location.href
                 }
+            };
 
-                const data = await res.json();
-                output.textContent += "\nDati ricevuti:\n" + JSON.stringify(data, null, 2);
+            const msalInstance = new msal.PublicClientApplication(msalConfig);
 
-            } catch (err) {
-                console.error(err);
-                output.textContent = "Errore: " + err;
-            }
-        });
+            const loginRequest = {
+                scopes: ["Files.Read.All", "Sites.Read.All", "User.Read"]
+            };
+
+            // -------------------------------
+            // 2️⃣ Login e chiamata Function
+            // -------------------------------
+            loginBtn.addEventListener("click", async () => {
+                try {
+                    // Login popup
+                    const loginResponse = await msalInstance.loginPopup(loginRequest);
+                    const accessToken = loginResponse.accessToken;
+
+                    console.log("Access Token:", accessToken);
+                    output.textContent = "Login effettuato. Token ottenuto.\nChiamata alla Function...";
+
+                    // -------------------------------
+                    // URL della Function
+                    // -------------------------------
+                    const functionUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetBitcoinDataDelegated";
+
+                    // Chiamata fetch con Bearer token
+                    const res = await fetch(functionUrl, {
+                        headers: {
+                            "Authorization": "Bearer " + accessToken
+                        }
+                    });
+
+                    console.log("HTTP response:", res);
+
+                    if (!res.ok) {
+                        output.textContent += `\nErrore chiamata Function: ${res.status} ${res.statusText}`;
+                        return;
+                    }
+
+                    const data = await res.json();
+                    console.log("Dati ricevuti:", data);
+
+                    output.textContent += "\nDati ricevuti:\n" + JSON.stringify(data, null, 2);
+
+                } catch (err) {
+                    console.error("Errore:", err);
+                    output.textContent = "Errore: " + err;
+                }
+            });
+        };
     </script>
 </body>
 </html>
