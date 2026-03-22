@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Test Bitcoin Data Function</title>
+    <script src="https://alcdn.msauth.net/browser/2.42.0/js/msal-browser.min.js"></script>
+</head>
+<body>
+    <h1>Test GetBitcoinDataDelegated</h1>
+    <button id="loginBtn">Login e Carica Dati</button>
+    <pre id="output"></pre>
+
+    <script>
+        // -------------------------------
+        // 1️⃣ Configurazione MSAL
+        // -------------------------------
+        const msalConfig = {
+            auth: {
+                clientId: "58af58ed-6ebf-433b-86b0-e2c974ce816d", // App registrata in Azure AD
+                authority: "https://login.microsoftonline.com/a9473751-af53-414d-a21d-fece59051a04",
+                redirectUri: window.location.href
+            }
+        };
+
+        const msalInstance = new msal.PublicClientApplication(msalConfig);
+
+        // Scope richiesti
+        const loginRequest = {
+            scopes: ["Files.Read.All", "Sites.Read.All", "User.Read"]
+        };
+
+        const loginBtn = document.getElementById("loginBtn");
+        const output = document.getElementById("output");
+
+        loginBtn.addEventListener("click", async () => {
+            try {
+                // -------------------------------
+                // 2️⃣ Login popup
+                // -------------------------------
+                const loginResponse = await msalInstance.loginPopup(loginRequest);
+                const accessToken = loginResponse.accessToken;
+
+                output.textContent = "Login effettuato. Token ottenuto.\nChiamata alla Function...";
+
+                // -------------------------------
+                // 3️⃣ Chiamata alla Function con token
+                // -------------------------------
+                const functionUrl = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetBitcoinDataDelegated";
+
+                const res = await fetch(functionUrl, {
+                    headers: {
+                        "Authorization": "Bearer " + accessToken
+                    }
+                });
+
+                if (!res.ok) {
+                    output.textContent += `\nErrore chiamata Function: ${res.status} ${res.statusText}`;
+                    return;
+                }
+
+                const data = await res.json();
+                output.textContent += "\nDati ricevuti:\n" + JSON.stringify(data, null, 2);
+
+            } catch (err) {
+                console.error(err);
+                output.textContent = "Errore: " + err;
+            }
+        });
+    </script>
+</body>
+</html>
