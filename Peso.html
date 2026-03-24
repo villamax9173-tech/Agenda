@@ -82,6 +82,14 @@ canvas{
     <button class="save" onclick="salva()">SALVA</button>
 </div>
 
+<!-- 🔹 PERIODO EDITABILE -->
+<div style="margin-top:20px;">
+    Periodo (giorni):
+    <input type="number" id="giorniInput" value="60" min="1" style="width:80px; padding:5px;">
+    <button onclick="applicaPeriodo()">Applica</button>
+    <button onclick="setPeriodo(9999)">Tutto</button>
+</div>
+
 <canvas id="grafico" width="400" height="150"></canvas>
 
 <table id="tabella">
@@ -100,9 +108,11 @@ canvas{
 const URL_GET = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetPeso?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 const URL_POST = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/SetPeso?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-// 🔹 variabili
+// 🔹 VARIABILI
 let pesoCorrente = 0;
 let chart;
+let periodo = 60; // ✅ DEFAULT 60 GIORNI
+let storicoGlobale = [];
 
 // 🔹 MENU
 fetch("menu.html")
@@ -119,11 +129,13 @@ async function carica(){
     pesoCorrente = data.ultimo;
     aggiornaDisplay();
 
-    aggiornaTabella(data.storico);
-    aggiornaGrafico(data.storico);
+    storicoGlobale = data.storico;
+
+    aggiornaTabella(storicoGlobale);
+    aggiornaGrafico();
 }
 
-// 🔹 DISPLAY PESO
+// 🔹 DISPLAY
 function aggiornaDisplay(){
     document.getElementById("peso").innerText = pesoCorrente.toFixed(1) + " kg";
 }
@@ -150,6 +162,28 @@ async function salva(){
     carica();
 }
 
+// 🔹 PERIODO
+function applicaPeriodo(){
+    const val = parseInt(document.getElementById("giorniInput").value);
+
+    if(isNaN(val) || val <= 0){
+        alert("Inserisci un numero valido");
+        return;
+    }
+
+    setPeriodo(val);
+}
+
+function setPeriodo(giorni){
+    periodo = giorni;
+
+    if(giorni !== 9999){
+        document.getElementById("giorniInput").value = giorni;
+    }
+
+    aggiornaGrafico();
+}
+
 // 🔹 TABELLA
 function aggiornaTabella(lista){
     const tbody = document.querySelector("#tabella tbody");
@@ -170,7 +204,19 @@ function aggiornaTabella(lista){
 }
 
 // 🔹 GRAFICO
-function aggiornaGrafico(lista){
+function aggiornaGrafico(){
+
+    let lista = [...storicoGlobale];
+
+    if(periodo !== 9999){
+        const oggi = new Date();
+
+        lista = lista.filter(x => {
+            const d = new Date(x.data);
+            const diff = (oggi - d) / (1000 * 60 * 60 * 24);
+            return diff <= periodo;
+        });
+    }
 
     const labels = lista.map(x => new Date(x.data).toLocaleDateString("it-IT")).reverse();
     const valori = lista.map(x => x.peso).reverse();
