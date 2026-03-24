@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Peso</title>
+
+<link rel="stylesheet" href="menu.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+    font-family: Arial;
+    margin:20px;
+    background:#f7f7f7;
+    text-align:center;
+}
+
+#peso{
+    font-size:70px;
+    font-weight:bold;
+    margin:30px 0;
+}
+
+.controls button{
+    font-size:25px;
+    padding:15px 25px;
+    margin:10px;
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.plus{ background:#4CAF50; color:white; }
+.minus{ background:#f44336; color:white; }
+.save{ background:#2196F3; color:white; }
+
+table{
+    margin:auto;
+    border-collapse: collapse;
+    margin-top:30px;
+    background:white;
+}
+
+th, td{
+    padding:10px;
+    border:1px solid #ddd;
+}
+
+th{
+    background:#333;
+    color:white;
+}
+
+tr:nth-child(even){
+    background:#f2f2f2;
+}
+
+canvas{
+    margin-top:30px;
+    background:white;
+    padding:10px;
+    border-radius:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<h1>Peso</h1>
+
+<div id="peso">--</div>
+
+<div class="controls">
+    <button class="minus" onclick="cambia(-0.1)">-</button>
+    <button class="plus" onclick="cambia(0.1)">+</button>
+    <br>
+    <button class="save" onclick="salva()">SALVA</button>
+</div>
+
+<canvas id="grafico" width="400" height="150"></canvas>
+
+<table id="tabella">
+<thead>
+<tr>
+<th>Data</th>
+<th>Peso</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+<script>
+
+// 🔹 URL API
+const URL_GET = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetPeso?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const URL_POST = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/SetPeso?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+// 🔹 variabili
+let pesoCorrente = 0;
+let chart;
+
+// 🔹 MENU
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+    document.getElementById("menu-container").innerHTML = data;
+});
+
+// 🔹 CARICA DATI
+async function carica(){
+    const res = await fetch(URL_GET);
+    const data = await res.json();
+
+    pesoCorrente = data.ultimo;
+    aggiornaDisplay();
+
+    aggiornaTabella(data.storico);
+    aggiornaGrafico(data.storico);
+}
+
+// 🔹 DISPLAY PESO
+function aggiornaDisplay(){
+    document.getElementById("peso").innerText = pesoCorrente.toFixed(1) + " kg";
+}
+
+// 🔹 + / -
+function cambia(val){
+    pesoCorrente += val;
+    aggiornaDisplay();
+}
+
+// 🔹 SALVA
+async function salva(){
+
+    if(!confirm("Confermi peso " + pesoCorrente.toFixed(1) + " kg?"))
+        return;
+
+    await fetch(URL_POST, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ peso: pesoCorrente })
+    });
+
+    alert("Salvato!");
+    carica();
+}
+
+// 🔹 TABELLA
+function aggiornaTabella(lista){
+    const tbody = document.querySelector("#tabella tbody");
+    tbody.innerHTML = "";
+
+    lista.forEach(x => {
+        const tr = document.createElement("tr");
+
+        let dataFormattata = new Date(x.data).toLocaleDateString("it-IT");
+
+        tr.innerHTML = `
+            <td>${dataFormattata}</td>
+            <td>${x.peso.toFixed(1)}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+}
+
+// 🔹 GRAFICO
+function aggiornaGrafico(lista){
+
+    const labels = lista.map(x => new Date(x.data).toLocaleDateString("it-IT")).reverse();
+    const valori = lista.map(x => x.peso).reverse();
+
+    if(chart) chart.destroy();
+
+    chart = new Chart(document.getElementById("grafico"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Peso",
+                data: valori,
+                tension: 0.3
+            }]
+        },
+        options:{
+            responsive:true,
+            plugins:{
+                legend:{ display:false }
+            }
+        }
+    });
+}
+
+// 🔹 AVVIO
+carica();
+
+</script>
+
+</body>
+</html>
