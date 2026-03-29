@@ -195,8 +195,84 @@ function renderTabella(){
     });
 }
 
-// GRAFICI
 function creaGrafici(){
+
+    let oggi = new Date();
+    let meseCorrente = oggi.getMonth();
+    let annoCorrente = oggi.getFullYear();
+
+    // 🔴 FILTRO: solo uscite del mese corrente
+    let filtrati = dati.filter(r=>{
+        return r.importo < 0 &&
+               r.data.getMonth() === meseCorrente &&
+               r.data.getFullYear() === annoCorrente;
+    });
+
+    let labels=[];
+    let saldo=[];
+    let cumulato=0;
+
+    let entrate=0; // rimane 0 (solo uscite)
+    let uscite=0;
+
+    let perGiorno={};
+
+    filtrati.forEach(r=>{
+
+        cumulato+=Math.abs(r.importo);
+
+        labels.push(r.label);
+        saldo.push(cumulato);
+
+        uscite+=Math.abs(r.importo);
+
+        if(!perGiorno[r.label]) perGiorno[r.label]=0;
+        perGiorno[r.label]+=Math.abs(r.importo);
+    });
+
+    // 📈 SALDO (cumulato spese)
+    new Chart(document.getElementById("saldoChart"),{
+        type:"line",
+        data:{
+            labels:labels,
+            datasets:[{
+                label:"Spesa cumulata",
+                data:saldo
+            }]
+        }
+    });
+
+    // 🥧 PIE (solo uscite)
+    new Chart(document.getElementById("pieChart"),{
+        type:"pie",
+        data:{
+            labels:["Uscite"],
+            datasets:[{
+                data:[uscite]
+            }]
+        }
+    });
+
+    // 📊 BAR (spesa per giorno)
+    let giorni = Object.keys(perGiorno);
+
+    giorni.sort((a,b)=> new Date(a) - new Date(b));
+
+    new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+            labels:giorni,
+            datasets:[{
+                label:"Speso",
+                data:giorni.map(g=>perGiorno[g])
+            }]
+        }
+    });
+
+}    
+    
+// GRAFICI
+function creaGraficiOLd(){
 
     let labels=[];
     let saldo=[];
