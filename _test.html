@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<link rel="stylesheet" href="menu.css">
 <meta charset="UTF-8">
-<title>Report Carte</title>
+<title>Movimenti Conto Corrente</title>
 
+<link rel="stylesheet" href="menu.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -19,7 +19,7 @@ h1 {
 }
 
 .container {
-    max-width: 1200px;
+    max-width: 1100px;
     margin: auto;
 }
 
@@ -27,34 +27,11 @@ h1 {
     background: white;
     padding: 15px;
     margin-bottom: 20px;
-    border-radius: 10px;
-    box-shadow: 0 0 8px rgba(0,0,0,0.1);
-}
-
-.tabs {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.tab {
-    padding: 10px 20px;
-    cursor: pointer;
-    background: #ddd;
-    margin: 5px;
     border-radius: 8px;
-    font-weight: bold;
+    box-shadow: 0 0 6px rgba(0,0,0,0.08);
 }
 
-.tab.active {
-    background: #333;
-    color: white;
-}
-
-.hidden {
-    display: none;
-}
-
+/* TABELLA SOBRIA */
 table {
     width: 100%;
     border-collapse: collapse;
@@ -62,28 +39,53 @@ table {
 
 th, td {
     padding: 8px;
-    text-align: right;
 }
 
 th {
-    background: #333;
+    background: #2c3e50;
     color: white;
+    text-align: left;
 }
 
-tr:nth-child(even) {
-    background: #f2f2f2;
+td {
+    border-bottom: 1px solid #eee;
 }
 
-.totali {
-    display: flex;
-    justify-content: space-around;
-    font-size: 18px;
+tr:hover {
+    background: #fafafa;
+}
+
+/* IMPORTI */
+.importo {
+    text-align: right;
     font-weight: bold;
 }
 
-.cart { color: #0b3d91; }
-.nexi { color: #66b3ff; }
-.tot { color: #2e8b57; }
+.dare {
+    color: #c0392b;   /* rosso soft */
+}
+
+.avere {
+    color: #2e7d32;   /* verde soft */
+}
+
+/* DATA */
+.data {
+    color: #666;
+    font-size: 13px;
+}
+
+/* CAUSALE */
+.causale {
+    font-size: 14px;
+}
+
+/* GRAFICI */
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
 
 </style>
 </head>
@@ -93,89 +95,40 @@ tr:nth-child(even) {
 <div id="menu-container"></div>
 
 <div class="container">
+<h1>Movimenti Conto Corrente</h1>
 
-<h1>💳 Report Spese Carte</h1>
-
-<!-- TAB -->
-<div class="tabs">
-    <div class="tab active" onclick="showTab('totale')">Totale</div>
-    <div class="tab" onclick="showTab('cart')">Cartimpronta</div>
-    <div class="tab" onclick="showTab('nexi')">Nexi</div>
+<!-- 📋 TABELLA -->
+<div class="card">
+<table id="tabella">
+<thead>
+<tr>
+<th>Data</th>
+<th>Causale</th>
+<th style="text-align:right">Importo</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 </div>
 
-<!-- ===================== TOTALE ===================== -->
-<div id="totale" class="tab-content">
+<!-- 📊 GRAFICI -->
+<div class="grid">
 
-<div class="card totali">
-    <div class="cart">Cartimpronta: <span id="totCart"></span></div>
-    <div class="nexi">Nexi: <span id="totNexi"></span></div>
-    <div class="tot">Totale: <span id="totAll"></span></div>
+<div class="card">
+    <h3>Saldo nel tempo</h3>
+    <canvas id="saldoChart"></canvas>
 </div>
 
 <div class="card">
-    <canvas id="grafico"></canvas>
+    <h3>Entrate vs Uscite</h3>
+    <canvas id="pieChart"></canvas>
+</div>
+
 </div>
 
 <div class="card">
-    <h3>📅 Dettaglio Mensile</h3>
-    <table id="tabella">
-        <thead>
-            <tr>
-                <th>Anno</th>
-                <th>Mese</th>
-                <th>Cartimpronta</th>
-                <th>Nexi</th>
-                <th>Totale</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-</div>
-
-<!-- ===================== CARTIMPRONTA ===================== -->
-<div id="cart" class="tab-content hidden">
-
-<div class="card">
-    <canvas id="graficoCart"></canvas>
-</div>
-
-<div class="card">
-    <table id="tabellaCart">
-        <thead>
-            <tr>
-                <th>Anno</th>
-                <th>Mese</th>
-                <th>Importo</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
-</div>
-
-<!-- ===================== NEXI ===================== -->
-<div id="nexi" class="tab-content hidden">
-
-<div class="card">
-    <canvas id="graficoNexi"></canvas>
-</div>
-
-<div class="card">
-    <table id="tabellaNexi">
-        <thead>
-            <tr>
-                <th>Anno</th>
-                <th>Mese</th>
-                <th>Importo</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</div>
-
+    <h3>Spesa per giorno</h3>
+    <canvas id="barChart"></canvas>
 </div>
 
 </div>
@@ -183,110 +136,188 @@ tr:nth-child(even) {
 <script>
 // MENU
 fetch("menu.html")
-.then(res => res.text())
-.then(data => {
-    document.getElementById("menu-container").innerHTML = data;
-});
+.then(r=>r.text())
+.then(d=>document.getElementById("menu-container").innerHTML=d);
 
-// TAB SWITCH
-function showTab(id) {
-    document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-    document.getElementById(id).classList.remove("hidden");
+const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-    document.querySelectorAll(".tab").forEach(t => t.classList.remove("active"));
-    event.target.classList.add("active");
-}
+let dati=[];
 
-const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetReportCarte?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
-
-const mesi = ["","Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"];
+const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
 
 fetch(url)
-.then(r => r.json())
-.then(data => {
+.then(r=>r.json())
+.then(json=>{
 
-    data.sort((a,b) => (b.anno*100 + b.mese) - (a.anno*100 + a.mese));
+    dati = json.map(r=>{
+        let d = normalizzaData(r.DataContabile);
+        let date = new Date(d);
 
-    let labels=[], cart=[], nexi=[], tot=[];
-    let cartLabels=[], cartData=[];
-    let nexiLabels=[], nexiData=[];
-
-    let totCart=0, totNexi=0;
-
-    const tbody = document.querySelector("#tabella tbody");
-
-    data.forEach(r => {
-
-        let label = r.anno + "-" + String(r.mese).padStart(2,'0');
-
-        labels.unshift(label);
-        cart.unshift(r.cartimpronta);
-        nexi.unshift(r.nexi);
-        tot.unshift(r.totale);
-
-        cartLabels.unshift(label);
-        cartData.unshift(r.cartimpronta);
-
-        nexiLabels.unshift(label);
-        nexiData.unshift(r.nexi);
-
-        totCart += r.cartimpronta;
-        totNexi += r.nexi;
-
-        tbody.innerHTML += `
-        <tr>
-            <td>${r.anno}</td>
-            <td>${mesi[r.mese]}</td>
-            <td class="cart">${format(r.cartimpronta)}</td>
-            <td class="nexi">${format(r.nexi)}</td>
-            <td class="tot">${format(r.totale)}</td>
-        </tr>`;
-
-        document.querySelector("#tabellaCart tbody").innerHTML += `
-        <tr>
-            <td>${r.anno}</td>
-            <td>${mesi[r.mese]}</td>
-            <td class="cart">${format(r.cartimpronta)}</td>
-        </tr>`;
-
-        document.querySelector("#tabellaNexi tbody").innerHTML += `
-        <tr>
-            <td>${r.anno}</td>
-            <td>${mesi[r.mese]}</td>
-            <td class="nexi">${format(r.nexi)}</td>
-        </tr>`;
+        return {
+            data: date,
+            label: date.getDate()+" "+mesi[date.getMonth()],
+            causale: (r.Causale||"").trim(),
+            importo: parseFloat(r.Importo),
+            tipo: r.azione
+        };
     });
 
-    document.getElementById("totCart").innerText = format(totCart);
-    document.getElementById("totNexi").innerText = format(totNexi);
-    document.getElementById("totAll").innerText = format(totCart + totNexi);
+    dati.sort((a,b)=>a.data-b.data);
 
-    new Chart(document.getElementById("grafico"), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [
-                { label:'Cartimpronta', data:cart, borderColor:'#0b3d91' },
-                { label:'Nexi', data:nexi, borderColor:'#66b3ff' },
-                { label:'Totale', data:tot, borderColor:'#2e8b57' }
-            ]
+    renderTabella();
+    creaGrafici();
+});
+
+// NORMALIZZA DATA
+function normalizzaData(d){
+    if(!d) return "";
+    let clean = d.replace(/[^\d-]/g,"");
+    return clean.substring(0,10);
+}
+
+// TABELLA
+function renderTabella(){
+    const tbody=document.querySelector("#tabella tbody");
+    tbody.innerHTML="";
+
+    dati.slice().reverse().forEach(r=>{
+
+        let tipoClass = r.tipo==="D"?"dare":"avere";
+
+        tbody.innerHTML+=`
+        <tr>
+            <td class="data">${r.label}</td>
+            <td class="causale">${r.causale}</td>
+            <td class="importo ${tipoClass}">
+                ${r.importo.toFixed(2)}
+            </td>
+        </tr>`;
+    });
+}
+
+function creaGrafici(){
+
+    let oggi = new Date();
+    let meseCorrente = oggi.getMonth();
+    let annoCorrente = oggi.getFullYear();
+
+    // 🔴 FILTRO: solo uscite del mese corrente
+    let filtrati = dati.filter(r=>{
+        return r.importo < 0 &&
+               r.data.getMonth() === meseCorrente &&
+               r.data.getFullYear() === annoCorrente;
+    });
+
+    let labels=[];
+    let saldo=[];
+    let cumulato=0;
+
+    let entrate=0; // rimane 0 (solo uscite)
+    let uscite=0;
+
+    let perGiorno={};
+
+    filtrati.forEach(r=>{
+
+        cumulato+=Math.abs(r.importo);
+
+        labels.push(r.label);
+        saldo.push(cumulato);
+
+        uscite+=Math.abs(r.importo);
+
+        if(!perGiorno[r.label]) perGiorno[r.label]=0;
+        perGiorno[r.label]+=Math.abs(r.importo);
+    });
+
+    // 📈 SALDO (cumulato spese)
+    new Chart(document.getElementById("saldoChart"),{
+        type:"line",
+        data:{
+            labels:labels,
+            datasets:[{
+                label:"Spesa cumulata",
+                data:saldo
+            }]
         }
     });
 
-    new Chart(document.getElementById("graficoCart"), {
-        type: 'bar',
-        data: { labels: cartLabels, datasets:[{label:'Cartimpronta', data:cartData, backgroundColor:'#0b3d91'}]}
+    // 🥧 PIE (solo uscite)
+    new Chart(document.getElementById("pieChart"),{
+        type:"pie",
+        data:{
+            labels:["Uscite"],
+            datasets:[{
+                data:[uscite]
+            }]
+        }
     });
 
-    new Chart(document.getElementById("graficoNexi"), {
-        type: 'bar',
-        data: { labels: nexiLabels, datasets:[{label:'Nexi', data:nexiData, backgroundColor:'#66b3ff'}]}
+    // 📊 BAR (spesa per giorno)
+    let giorni = Object.keys(perGiorno);
+
+    giorni.sort((a,b)=> new Date(a) - new Date(b));
+
+    new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+            labels:giorni,
+            datasets:[{
+                label:"Speso",
+                data:giorni.map(g=>perGiorno[g])
+            }]
+        }
     });
 
-});
+}    
+    
+// GRAFICI
+function creaGraficiOLd(){
 
-function format(num) {
-    return Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    let labels=[];
+    let saldo=[];
+    let cumulato=0;
+
+    let entrate=0;
+    let uscite=0;
+
+    let perGiorno={};
+
+    dati.forEach(r=>{
+
+        cumulato+=r.importo;
+
+        labels.push(r.label);
+        saldo.push(cumulato);
+
+        if(r.importo>0) entrate+=r.importo;
+        else uscite+=Math.abs(r.importo);
+
+        if(!perGiorno[r.label]) perGiorno[r.label]=0;
+        perGiorno[r.label]+=Math.abs(r.importo);
+    });
+
+    new Chart(document.getElementById("saldoChart"),{
+        type:"line",
+        data:{labels:labels,datasets:[{label:"Saldo",data:saldo}]}
+    });
+
+    new Chart(document.getElementById("pieChart"),{
+        type:"pie",
+        data:{
+            labels:["Entrate","Uscite"],
+            datasets:[{data:[entrate,uscite]}]
+        }
+    });
+
+    new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+            labels:Object.keys(perGiorno),
+            datasets:[{label:"Speso",data:Object.values(perGiorno)}]
+        }
+    });
+
 }
 </script>
 
