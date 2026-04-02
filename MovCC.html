@@ -14,9 +14,7 @@ body {
     background: #f5f5f5;
 }
 
-h1 {
-    text-align: center;
-}
+h1 { text-align: center; }
 
 .container {
     max-width: 1100px;
@@ -31,15 +29,12 @@ h1 {
     box-shadow: 0 0 6px rgba(0,0,0,0.08);
 }
 
-/* TABELLA SOBRIA */
 table {
     width: 100%;
     border-collapse: collapse;
 }
 
-th, td {
-    padding: 8px;
-}
+th, td { padding: 8px; }
 
 th {
     background: #2c3e50;
@@ -47,46 +42,42 @@ th {
     text-align: left;
 }
 
-td {
-    border-bottom: 1px solid #eee;
-}
+td { border-bottom: 1px solid #eee; }
 
-tr:hover {
-    background: #fafafa;
-}
+tr:hover { background: #fafafa; }
 
-/* IMPORTI */
-.importo {
-    text-align: right;
-    font-weight: bold;
-}
+.importo { text-align: right; font-weight: bold; }
+.dare { color: #c0392b; }
+.avere { color: #2e7d32; }
 
-.dare {
-    color: #c0392b;   /* rosso soft */
-}
+.data { color: #666; font-size: 13px; }
+.causale { font-size: 14px; }
 
-.avere {
-    color: #2e7d32;   /* verde soft */
-}
-
-/* DATA */
-.data {
-    color: #666;
-    font-size: 13px;
-}
-
-/* CAUSALE */
-.causale {
-    font-size: 14px;
-}
-
-/* GRAFICI */
 .grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
 }
 
+button.tab {
+    margin-right:5px;
+    padding:6px 10px;
+    border:none;
+    cursor:pointer;
+    border-radius:5px;
+    background:#ddd;
+}
+
+button.tab.active {
+    background:#2c3e50;
+    color:white;
+}
+
+input {
+    padding:6px;
+    width:250px;
+    margin-bottom:10px;
+}
 </style>
 </head>
 
@@ -97,23 +88,25 @@ tr:hover {
 <div class="container">
 <h1>Movimenti Conto Corrente</h1>
 
-<!-- 📋 TABELLA -->
+<div id="tabs"></div>
+
 <div class="card">
-<table id="tabella">
-<thead>
-<tr>
-<th>Data</th>
-<th>Causale</th>
-<th style="text-align:right">Importo</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+    <input type="text" id="filtro" placeholder="Cerca causale...">
+    <div id="totali" style="margin:10px 0;font-weight:bold;"></div>
+
+    <table id="tabella">
+        <thead>
+        <tr>
+            <th>Data</th>
+            <th>Causale</th>
+            <th style="text-align:right">Importo</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
 </div>
 
-<!-- 📊 GRAFICI -->
 <div class="grid">
-
 <div class="card">
     <h3>Saldo nel tempo</h3>
     <canvas id="saldoChart"></canvas>
@@ -123,7 +116,6 @@ tr:hover {
     <h3>Entrate vs Uscite</h3>
     <canvas id="pieChart"></canvas>
 </div>
-
 </div>
 
 <div class="card">
@@ -134,7 +126,6 @@ tr:hover {
 </div>
 
 <script>
-// MENU
 fetch("menu.html")
 .then(r=>r.text())
 .then(d=>document.getElementById("menu-container").innerHTML=d);
@@ -142,8 +133,13 @@ fetch("menu.html")
 const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
 let dati=[];
+let datiPerMese={};
+let meseAttivo="";
+let filtroTesto="";
 
 const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+
+let saldoChart, pieChart, barChart;
 
 fetch(url)
 .then(r=>r.json())
@@ -164,23 +160,73 @@ fetch(url)
 
     dati.sort((a,b)=>a.data-b.data);
 
+    // raggruppo per mese
+    dati.forEach(r=>{
+        let key = r.data.getFullYear()+"-"+(r.data.getMonth()+1).toString().padStart(2,'0');
+        if(!datiPerMese[key]) datiPerMese[key]=[];
+        datiPerMese[key].push(r);
+    });
+
+    meseAttivo = Object.keys(datiPerMese).sort().reverse()[0];
+
+    creaTabs();
     renderTabella();
     creaGrafici();
 });
 
-// NORMALIZZA DATA
+// filtro input
+document.addEventListener("input", e=>{
+    if(e.target.id==="filtro"){
+        filtroTesto = e.target.value.toLowerCase();
+        renderTabella();
+        creaGrafici();
+    }
+});
+
 function normalizzaData(d){
     if(!d) return "";
     let clean = d.replace(/[^\d-]/g,"");
     return clean.substring(0,10);
 }
 
-// TABELLA
+function creaTabs(){
+    const container = document.getElementById("tabs");
+    container.innerHTML="";
+
+    Object.keys(datiPerMese).sort().reverse().forEach(k=>{
+        let [anno,mese]=k.split("-");
+        let nome = mesi[parseInt(mese)-1]+" "+anno;
+
+        let btn=document.createElement("button");
+        btn.className="tab"+(k===meseAttivo?" active":"");
+        btn.innerText=nome;
+
+        btn.onclick=()=>{
+            meseAttivo=k;
+            creaTabs();
+            renderTabella();
+            creaGrafici();
+        };
+
+        container.appendChild(btn);
+    });
+}
+
 function renderTabella(){
     const tbody=document.querySelector("#tabella tbody");
     tbody.innerHTML="";
 
-    dati.slice().reverse().forEach(r=>{
+    let lista = datiPerMese[meseAttivo] || [];
+
+    let entrate=0, uscite=0;
+
+    lista
+    .filter(r=>r.causale.toLowerCase().includes(filtroTesto))
+    .slice().reverse()
+    .forEach(r=>{
+
+        if(r.importo>0) entrate+=r.importo;
+        else uscite+=Math.abs(r.importo);
 
         let tipoClass = r.tipo==="D"?"dare":"avere";
 
@@ -193,116 +239,55 @@ function renderTabella(){
             </td>
         </tr>`;
     });
+
+    document.getElementById("totali").innerHTML =
+        `Entrate: ${entrate.toFixed(2)} | Uscite: ${uscite.toFixed(2)} | Saldo: ${(entrate-uscite).toFixed(2)}`;
 }
 
 function creaGrafici(){
 
-    let oggi = new Date();
-    let meseCorrente = oggi.getMonth();
-    let annoCorrente = oggi.getFullYear();
+    let lista = datiPerMese[meseAttivo] || [];
 
-    // 🔴 FILTRO: solo uscite del mese corrente
-    let filtrati = dati.filter(r=>{
-        return r.importo < 0 &&
-               r.data.getMonth() === meseCorrente &&
-               r.data.getFullYear() === annoCorrente;
-    });
+    lista = lista.filter(r=>r.causale.toLowerCase().includes(filtroTesto));
 
-    let labels=[];
-    let saldo=[];
-    let cumulato=0;
-
-    let entrate=0; // rimane 0 (solo uscite)
-    let uscite=0;
-
+    let labels=[], saldo=[], cumulato=0;
+    let entrate=0, uscite=0;
     let perGiorno={};
 
-    filtrati.forEach(r=>{
-
-        cumulato+=Math.abs(r.importo);
-
-        labels.push(r.label);
-        saldo.push(cumulato);
-
-        uscite+=Math.abs(r.importo);
-
-        if(!perGiorno[r.label]) perGiorno[r.label]=0;
-        perGiorno[r.label]+=Math.abs(r.importo);
-    });
-
-    // 📈 SALDO (cumulato spese)
-    new Chart(document.getElementById("saldoChart"),{
-        type:"line",
-        data:{
-            labels:labels,
-            datasets:[{
-                label:"Spesa cumulata",
-                data:saldo
-            }]
-        }
-    });
-
-    // 🥧 PIE (solo uscite)
-    new Chart(document.getElementById("pieChart"),{
-        type:"pie",
-        data:{
-            labels:["Uscite"],
-            datasets:[{
-                data:[uscite]
-            }]
-        }
-    });
-
-    // 📊 BAR (spesa per giorno)
-    let giorni = Object.keys(perGiorno);
-
-    giorni.sort((a,b)=> new Date(a) - new Date(b));
-
-    new Chart(document.getElementById("barChart"),{
-        type:"bar",
-        data:{
-            labels:giorni,
-            datasets:[{
-                label:"Speso",
-                data:giorni.map(g=>perGiorno[g])
-            }]
-        }
-    });
-
-}    
-    
-// GRAFICI
-function creaGraficiOLd(){
-
-    let labels=[];
-    let saldo=[];
-    let cumulato=0;
-
-    let entrate=0;
-    let uscite=0;
-
-    let perGiorno={};
-
-    dati.forEach(r=>{
-
+    lista.forEach(r=>{
         cumulato+=r.importo;
-
         labels.push(r.label);
         saldo.push(cumulato);
 
         if(r.importo>0) entrate+=r.importo;
         else uscite+=Math.abs(r.importo);
 
-        if(!perGiorno[r.label]) perGiorno[r.label]=0;
-        perGiorno[r.label]+=Math.abs(r.importo);
+        let key=r.data.toISOString().substring(0,10);
+
+        if(!perGiorno[key]){
+            perGiorno[key]={label:r.label,data:r.data,totale:0};
+        }
+        perGiorno[key].totale+=Math.abs(r.importo);
     });
 
-    new Chart(document.getElementById("saldoChart"),{
+    if(saldoChart) saldoChart.destroy();
+    if(pieChart) pieChart.destroy();
+    if(barChart) barChart.destroy();
+
+    saldoChart = new Chart(document.getElementById("saldoChart"),{
         type:"line",
-        data:{labels:labels,datasets:[{label:"Saldo",data:saldo}]}
+        data:{
+            labels:labels,
+            datasets:[{
+                label:"Saldo",
+                data:saldo,
+                borderWidth:2,
+                tension:0.3
+            }]
+        }
     });
 
-    new Chart(document.getElementById("pieChart"),{
+    pieChart = new Chart(document.getElementById("pieChart"),{
         type:"pie",
         data:{
             labels:["Entrate","Uscite"],
@@ -310,14 +295,19 @@ function creaGraficiOLd(){
         }
     });
 
-    new Chart(document.getElementById("barChart"),{
+    let giorniArray = Object.values(perGiorno);
+    giorniArray.sort((a,b)=>a.data-b.data);
+
+    barChart = new Chart(document.getElementById("barChart"),{
         type:"bar",
         data:{
-            labels:Object.keys(perGiorno),
-            datasets:[{label:"Speso",data:Object.values(perGiorno)}]
+            labels:giorniArray.map(g=>g.label),
+            datasets:[{
+                label:"Speso",
+                data:giorniArray.map(g=>g.totale)
+            }]
         }
     });
-
 }
 </script>
 
