@@ -29,10 +29,11 @@ body {
 .summary {
     display: flex;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .summary div {
-    flex: 1;
+    flex: 1 1 180px;
     background: #fafafa;
     padding: 10px;
     border-radius: 6px;
@@ -92,6 +93,8 @@ fetch("menu.html")
     <div><b>Valore Attuale</b><br><span id="totValore"></span></div>
     <div><b>Guadagno / Perdita</b><br><span id="totGain"></span></div>
     <div><b>BTC Portafoglio</b><br><span id="totBTC"></span></div>
+    <div><b>Totale Investito Complessivo</b><br><span id="totInvestCompl"></span></div>
+    <div><b>Valore Bitcoin</b><br><span id="valoreBTC"></span></div>
 </div>
 
 <div class="card">
@@ -178,12 +181,17 @@ fetch(url)
     let capitale = ultimo.Capitale || 0;
     let valoreTotale = portafoglio * prezzoAttuale;
 
+    // 🔹 NUOVE ETICHETTE
+    let totaleInvestCompl = portafoglio * prezzoAttuale;
+
     document.getElementById("capitale").innerText = fmt(capitale) + " €";
     document.getElementById("totInvest").innerText = fmt(totaleInvest) + " €";
     document.getElementById("totValore").innerText = fmt(valoreTotale) + " €";
     document.getElementById("totBTC").innerText = portafoglio.toFixed(6);
+    document.getElementById("totInvestCompl").innerText = fmt(totaleInvestCompl) + " €";
+    document.getElementById("valoreBTC").innerText = fmt(prezzoAttuale) + " €";
 
-    // 🔴 CALCOLO GAIN SOLO DALLA TABELLA
+    // 🔴 GAIN SOLO DA TABELLA
     let gainTotale = 0;
 
     const tbody = document.getElementById("tabella");
@@ -197,7 +205,7 @@ fetch(url)
         let valoreRiga = btc * prezzoAttuale;
         let gain = valoreRiga - invest;
 
-        gainTotale += gain; // ✅ QUI SOMMI
+        gainTotale += gain;
 
         let tr = document.createElement("tr");
 
@@ -215,7 +223,6 @@ fetch(url)
         tbody.appendChild(tr);
     });
 
-    // ✅ ORA È IDENTICO ALLA COLONNA
     document.getElementById("totGain").innerText = fmt(gainTotale) + " €";
     document.getElementById("totGain").className = gainTotale >= 0 ? "positivo" : "negativo";
 
