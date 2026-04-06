@@ -139,13 +139,12 @@ fetch(url)
 .then(res => res.json())
 .then(data => {
 
-    // 🔹 Ordine ASC per grafici
     data.sort((a, b) => new Date(a.DataMovimento) - new Date(b.DataMovimento));
 
-    const prezzoAttuale = data[data.length - 1].Valore;
+    const valoreBitcoin = data[data.length - 1].Valore;
 
     let totaleInvest = 0;
-    let cumulBTC = 0;
+    let cumulBTC = 0; // 👉 SOMMA AC (quella che serve)
     let cumulInvest = 0;
 
     let labels = [];
@@ -160,10 +159,10 @@ fetch(url)
         let btc = r.AC || 0;
 
         totaleInvest += invest;
-        cumulBTC += btc;
+        cumulBTC += btc; // 🔴 QUESTO È IL DATO CHIAVE
         cumulInvest += invest;
 
-        let cumulValore = cumulBTC * prezzoAttuale;
+        let cumulValore = cumulBTC * valoreBitcoin;
         let gainProgressivo = cumulValore - cumulInvest;
 
         gainCumulato.push(gainProgressivo);
@@ -179,21 +178,19 @@ fetch(url)
 
     let portafoglio = ultimo.Portafoglio || cumulBTC;
     let capitale = ultimo.Capitale || 0;
-    let valoreTotale = portafoglio * prezzoAttuale;
 
-    // 🔹 NUOVE ETICHETTE
-    let totaleInvestCompl = portafoglio * prezzoAttuale;
+    // ✅ NUOVA FORMULA CORRETTA
+    let totaleInvestCompl = cumulBTC * valoreBitcoin;
 
     document.getElementById("capitale").innerText = fmt(capitale) + " €";
     document.getElementById("totInvest").innerText = fmt(totaleInvest) + " €";
-    document.getElementById("totValore").innerText = fmt(valoreTotale) + " €";
+    document.getElementById("totValore").innerText = fmt(portafoglio * valoreBitcoin) + " €";
     document.getElementById("totBTC").innerText = portafoglio.toFixed(6);
+
     document.getElementById("totInvestCompl").innerText = fmt(totaleInvestCompl) + " €";
-    document.getElementById("valoreBTC").innerText = fmt(prezzoAttuale) + " €";
+    document.getElementById("valoreBTC").innerText = fmt(valoreBitcoin) + " €";
 
-    // 🔴 GAIN SOLO DA TABELLA
     let gainTotale = 0;
-
     const tbody = document.getElementById("tabella");
 
     data.slice().reverse().forEach(r => {
@@ -202,7 +199,7 @@ fetch(url)
         let impo = r.Impo || 0;
         let btc = r.AC || 0;
 
-        let valoreRiga = btc * prezzoAttuale;
+        let valoreRiga = btc * valoreBitcoin;
         let gain = valoreRiga - invest;
 
         gainTotale += gain;
@@ -226,7 +223,6 @@ fetch(url)
     document.getElementById("totGain").innerText = fmt(gainTotale) + " €";
     document.getElementById("totGain").className = gainTotale >= 0 ? "positivo" : "negativo";
 
-    // 🔹 Grafici
     new Chart(document.getElementById("chartPrezzo"), {
         type: "line",
         data: {
