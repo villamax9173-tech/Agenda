@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>Movimenti Conto Corrente</title>
+<title>Analisi Bitcoin</title>
 
 <link rel="stylesheet" href="menu.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -14,311 +14,256 @@ body {
     background: #f5f5f5;
 }
 
-h1 {
-    text-align: center;
-}
-
 .container {
-    max-width: 1100px;
+    max-width: 1200px;
     margin: auto;
 }
 
 .card {
     background: white;
     padding: 15px;
-    margin-bottom: 20px;
+    margin-top: 20px;
     border-radius: 8px;
-    box-shadow: 0 0 6px rgba(0,0,0,0.08);
 }
 
-/* TABELLA SOBRIA */
+.summary {
+    display: flex;
+    gap: 20px;
+}
+
+.summary div {
+    flex: 1;
+    background: #fafafa;
+    padding: 10px;
+    border-radius: 6px;
+    text-align: center;
+}
+
+.highlight {
+    background: #fff3cd;
+    font-size: 20px;
+    font-weight: bold;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;
+    font-size: 14px;
 }
 
 th, td {
     padding: 8px;
+    text-align: right;
 }
 
 th {
-    background: #2c3e50;
-    color: white;
-    text-align: left;
+    background: #eee;
 }
 
-td {
-    border-bottom: 1px solid #eee;
-}
-
-tr:hover {
+tr:nth-child(even) {
     background: #fafafa;
 }
 
-/* IMPORTI */
-.importo {
-    text-align: right;
-    font-weight: bold;
-}
+.positivo { color: green; }
+.negativo { color: red; }
 
-.dare {
-    color: #c0392b;   /* rosso soft */
-}
-
-.avere {
-    color: #2e7d32;   /* verde soft */
-}
-
-/* DATA */
-.data {
-    color: #666;
-    font-size: 13px;
-}
-
-/* CAUSALE */
-.causale {
-    font-size: 14px;
-}
-
-/* GRAFICI */
-.grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
+h1 { margin-bottom: 10px; }
 </style>
 </head>
 
 <body>
 
 <div id="menu-container"></div>
+<script>
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+    document.getElementById("menu-container").innerHTML = data;
+});
+</script>
 
 <div class="container">
-<h1>Movimenti Conto Corrente</h1>
 
-<!-- 📋 TABELLA -->
+<h1>Analisi Acquisti Bitcoin</h1>
+
+<div class="card summary">
+    <div class="highlight"><b>Capitale Disponibile</b><br><span id="capitale"></span></div>
+    <div><b>Totale Investito</b><br><span id="totInvest"></span></div>
+    <div><b>Valore Attuale</b><br><span id="totValore"></span></div>
+    <div><b>Guadagno / Perdita</b><br><span id="totGain"></span></div>
+    <div><b>BTC Portafoglio</b><br><span id="totBTC"></span></div>
+</div>
+
 <div class="card">
-<table id="tabella">
+    <canvas id="chartPrezzo"></canvas>
+</div>
+
+<div class="card">
+    <canvas id="chartCumulato"></canvas>
+</div>
+
+<div class="card">
+    <canvas id="chartGain"></canvas>
+</div>
+
+<div class="card">
+<table>
 <thead>
 <tr>
 <th>Data</th>
-<th>Causale</th>
-<th style="text-align:right">Importo</th>
+<th>Invest</th>
+<th>Impo</th>
+<th>Comm</th>
+<th>BTC</th>
+<th>Prezzo</th>
+<th>Valore Attuale</th>
+<th>Gain €</th>
 </tr>
 </thead>
-<tbody></tbody>
+<tbody id="tabella"></tbody>
 </table>
-</div>
-
-<!-- 📊 GRAFICI -->
-<div class="grid">
-
-<div class="card">
-    <h3>Saldo nel tempo</h3>
-    <canvas id="saldoChart"></canvas>
-</div>
-
-<div class="card">
-    <h3>Entrate vs Uscite</h3>
-    <canvas id="pieChart"></canvas>
-</div>
-
-</div>
-
-<div class="card">
-    <h3>Spesa per giorno</h3>
-    <canvas id="barChart"></canvas>
 </div>
 
 </div>
 
 <script>
-// MENU
-fetch("menu.html")
-.then(r=>r.text())
-.then(d=>document.getElementById("menu-container").innerHTML=d);
 
-const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+const url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetAcquisitiBitcoin?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-let dati=[];
-
-const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+const fmt = v => v.toLocaleString("it-IT", {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
 fetch(url)
-.then(r=>r.json())
-.then(json=>{
+.then(res => res.json())
+.then(data => {
 
-    dati = json.map(r=>{
-        let d = normalizzaData(r.DataContabile);
-        let date = new Date(d);
+    // 🔹 Ordinamento ASC per calcoli
+    data.sort((a, b) => new Date(a.DataMovimento) - new Date(b.DataMovimento));
 
-        return {
-            data: date,
-            label: date.getDate()+" "+mesi[date.getMonth()],
-            causale: (r.Causale||"").trim(),
-            importo: parseFloat(r.Importo),
-            tipo: r.azione
-        };
+    const prezzoAttuale = data[data.length - 1].Valore;
+
+    let totaleInvest = 0;
+    let totaleBTC = 0;
+
+    let cumulBTC = 0;
+    let cumulInvest = 0;
+
+    let labels = [];
+    let prezzi = [];
+    let cumulato = [];
+    let gainCumulato = [];
+
+    let pmcArray = [];
+
+    data.forEach(r => {
+
+        let invest = r.Invest || 0;
+        let btc = r.AC || 0;
+
+        totaleInvest += invest;
+        totaleBTC += btc;
+
+        cumulBTC += btc;
+        cumulInvest += invest;
+
+        let cumulValore = cumulBTC * prezzoAttuale;
+        let gainProgressivo = cumulValore - cumulInvest;
+
+        gainCumulato.push(gainProgressivo);
+        cumulato.push(cumulBTC);
+        prezzi.push(r.Prezzo);
+        labels.push(r.DataMovimento);
+
+        let pmc = cumulBTC > 0 ? cumulInvest / cumulBTC : 0;
+        pmcArray.push(pmc);
     });
 
-    dati.sort((a,b)=>a.data-b.data);
+    // 🔹 Valori finali
+    const ultimo = data[data.length - 1];
 
-    renderTabella();
-    creaGrafici();
+    let portafoglio = ultimo.Portafoglio || totaleBTC;
+    let capitale = ultimo.Capitale || 0;
+
+    let valoreTotale = portafoglio * prezzoAttuale;
+    let gainTotale = valoreTotale - totaleInvest;
+
+    document.getElementById("capitale").innerText = fmt(capitale) + " €";
+    document.getElementById("totInvest").innerText = fmt(totaleInvest) + " €";
+    document.getElementById("totValore").innerText = fmt(valoreTotale) + " €";
+    document.getElementById("totGain").innerText = fmt(gainTotale) + " €";
+    document.getElementById("totGain").className = gainTotale >= 0 ? "positivo" : "negativo";
+    document.getElementById("totBTC").innerText = portafoglio.toFixed(6);
+
+    // 🔹 Grafico prezzo + PMC
+    new Chart(document.getElementById("chartPrezzo"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                { label: "Prezzo BTC", data: prezzi, tension: 0.3 },
+                { label: "PMC", data: pmcArray, tension: 0.3 }
+            ]
+        }
+    });
+
+    // 🔹 BTC cumulati
+    new Chart(document.getElementById("chartCumulato"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "BTC accumulati",
+                data: cumulato,
+                tension: 0.3
+            }]
+        }
+    });
+
+    // 🔹 Gain cumulato con colori dinamici
+    new Chart(document.getElementById("chartGain"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Gain cumulato (€)",
+                data: gainCumulato,
+                tension: 0.3,
+                segment: {
+                    borderColor: ctx => ctx.p0.parsed.y >= 0 ? 'green' : 'red'
+                }
+            }]
+        }
+    });
+
+    // 🔹 Tabella DESC
+    const tbody = document.getElementById("tabella");
+
+    data.slice().reverse().forEach(r => {
+
+        let invest = r.Invest || 0;
+        let impo = r.Impo || 0;
+        let btc = r.AC || 0;
+
+        let valoreRiga = btc * prezzoAttuale;
+        let gain = valoreRiga - invest;
+
+        let tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td style="text-align:left">${r.DataMovimento}</td>
+            <td>${fmt(invest)}</td>
+            <td>${fmt(impo)}</td>
+            <td>${fmt(r.Comm || 0)}</td>
+            <td>${btc.toFixed(6)}</td>
+            <td>${fmt(r.Prezzo)}</td>
+            <td>${fmt(valoreRiga)}</td>
+            <td class="${gain >= 0 ? 'positivo' : 'negativo'}">${fmt(gain)}</td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
 });
 
-// NORMALIZZA DATA
-function normalizzaData(d){
-    if(!d) return "";
-    let clean = d.replace(/[^\d-]/g,"");
-    return clean.substring(0,10);
-}
-
-// TABELLA
-function renderTabella(){
-    const tbody=document.querySelector("#tabella tbody");
-    tbody.innerHTML="";
-
-    dati.slice().reverse().forEach(r=>{
-
-        let tipoClass = r.tipo==="D"?"dare":"avere";
-
-        tbody.innerHTML+=`
-        <tr>
-            <td class="data">${r.label}</td>
-            <td class="causale">${r.causale}</td>
-            <td class="importo ${tipoClass}">
-                ${r.importo.toFixed(2)}
-            </td>
-        </tr>`;
-    });
-}
-
-function creaGrafici(){
-
-    let oggi = new Date();
-    let meseCorrente = oggi.getMonth();
-    let annoCorrente = oggi.getFullYear();
-
-    // 🔴 FILTRO: solo uscite del mese corrente
-    let filtrati = dati.filter(r=>{
-        return r.importo < 0 &&
-               r.data.getMonth() === meseCorrente &&
-               r.data.getFullYear() === annoCorrente;
-    });
-
-    let labels=[];
-    let saldo=[];
-    let cumulato=0;
-
-    let entrate=0; // rimane 0 (solo uscite)
-    let uscite=0;
-
-    let perGiorno={};
-
-    filtrati.forEach(r=>{
-
-        cumulato+=Math.abs(r.importo);
-
-        labels.push(r.label);
-        saldo.push(cumulato);
-
-        uscite+=Math.abs(r.importo);
-
-        if(!perGiorno[r.label]) perGiorno[r.label]=0;
-        perGiorno[r.label]+=Math.abs(r.importo);
-    });
-
-    // 📈 SALDO (cumulato spese)
-    new Chart(document.getElementById("saldoChart"),{
-        type:"line",
-        data:{
-            labels:labels,
-            datasets:[{
-                label:"Spesa cumulata",
-                data:saldo
-            }]
-        }
-    });
-
-    // 🥧 PIE (solo uscite)
-    new Chart(document.getElementById("pieChart"),{
-        type:"pie",
-        data:{
-            labels:["Uscite"],
-            datasets:[{
-                data:[uscite]
-            }]
-        }
-    });
-
-    // 📊 BAR (spesa per giorno)
-    let giorni = Object.keys(perGiorno);
-
-    giorni.sort((a,b)=> new Date(a) - new Date(b));
-
-    new Chart(document.getElementById("barChart"),{
-        type:"bar",
-        data:{
-            labels:giorni,
-            datasets:[{
-                label:"Speso",
-                data:giorni.map(g=>perGiorno[g])
-            }]
-        }
-    });
-
-}    
-    
-// GRAFICI
-function creaGraficiOLd(){
-
-    let labels=[];
-    let saldo=[];
-    let cumulato=0;
-
-    let entrate=0;
-    let uscite=0;
-
-    let perGiorno={};
-
-    dati.forEach(r=>{
-
-        cumulato+=r.importo;
-
-        labels.push(r.label);
-        saldo.push(cumulato);
-
-        if(r.importo>0) entrate+=r.importo;
-        else uscite+=Math.abs(r.importo);
-
-        if(!perGiorno[r.label]) perGiorno[r.label]=0;
-        perGiorno[r.label]+=Math.abs(r.importo);
-    });
-
-    new Chart(document.getElementById("saldoChart"),{
-        type:"line",
-        data:{labels:labels,datasets:[{label:"Saldo",data:saldo}]}
-    });
-
-    new Chart(document.getElementById("pieChart"),{
-        type:"pie",
-        data:{
-            labels:["Entrate","Uscite"],
-            datasets:[{data:[entrate,uscite]}]
-        }
-    });
-
-    new Chart(document.getElementById("barChart"),{
-        type:"bar",
-        data:{
-            labels:Object.keys(perGiorno),
-            datasets:[{label:"Speso",data:Object.values(perGiorno)}]
-        }
-    });
-
-}
 </script>
 
 </body>
