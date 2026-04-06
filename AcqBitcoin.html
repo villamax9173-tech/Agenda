@@ -96,7 +96,7 @@ fetch("menu.html")
     <div><b>Valore Bitcoin</b><br><span id="valoreBTC"></span></div>
     <div><b>Guadagno / Perdita</b><br><span id="totGain"></span></div>
     <div><b>Gain Positivi</b><br><span id="gainPos"></span></div>
-<div><b>Gain Negativi</b><br><span id="gainNeg"></span></div>
+    <div><b>Gain Negativi</b><br><span id="gainNeg"></span></div>
 </div>
 
 <div class="card">
@@ -141,7 +141,6 @@ const urlPrelievi = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01
 Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.json())])
 .then(([acquisti, prelievi]) => {
 
-    // unione dati
     const dati = [];
 
     acquisti.forEach(a => {
@@ -165,22 +164,23 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
         });
     });
 
-    // ordina per data desc
     dati.sort((a,b)=>new Date(b.data)-new Date(a.data));
 
-    // variabili riassuntive
-    let cumulBTCAcq = 0; // somma AC storica
-    let portafoglio = acquisti[acquisti.length-1].Portafoglio || 0;
+    let cumulBTCAcq = 0;
     let totaleInvestCompl = 0;
     let capitale = acquisti[acquisti.length-1].Capitale || 0;
     let valoreBitcoin = acquisti[acquisti.length-1].Valore || 0;
+    let portafoglio = acquisti[acquisti.length-1].Portafoglio || 0;
+
     let gainTotale = 0;
     let totPrelievi = 0;
     let gainPositivi = 0;
-let gainNegativi = 0;
+    let gainNegativi = 0;
+
+    let gainArray = [];
 
     const tbody = document.getElementById("tabella");
-let gainArray = [];
+
     dati.forEach(r => {
 
         let invest=0, btc=0, comm=0, valoreRiga=0, gain=0, btcPrelevati=0, importoPrelevato=0;
@@ -189,28 +189,26 @@ let gainArray = [];
             invest=r.invest;
             btc=r.btc;
             comm=r.comm;
-            btcPrelevati=0;
-            importoPrelevato=0;
 
             cumulBTCAcq += btc;
-           
 
             valoreRiga = btc*valoreBitcoin;
             gain = valoreRiga - invest;
-            gainTotale += gain;
-gainArray.push(gain);
-            if(gain >= 0){
-        gainPositivi += gain;
-    } else {
-        gainNegativi += gain;
-    }
 
-        } else if(r.tipo==="prelievo"){
+            gainTotale += gain;
+
+            if(gain >= 0) gainPositivi += gain;
+            else gainNegativi += gain;
+
+            gainArray.push(gain);
+
+        } else {
             btcPrelevati = r.btcPrelevati;
             importoPrelevato = r.importoPrelevato;
 
-           
             totPrelievi += importoPrelevato;
+
+            gainArray.push(0);
         }
 
         let tr = document.createElement("tr");
@@ -238,42 +236,37 @@ gainArray.push(gain);
     document.getElementById("valoreBTC").innerText = fmt(valoreBitcoin)+" €";
     document.getElementById("totGain").innerText = fmt(gainTotale)+" €";
     document.getElementById("totGain").className = gainTotale>=0?"positivo":"negativo";
-    document.getElementById("gainPos").innerText = fmt(gainPositivi) + " €";
-document.getElementById("gainPos").className = "positivo";
 
-document.getElementById("gainNeg").innerText = fmt(gainNegativi) + " €";
-document.getElementById("gainNeg").className = "negativo";
+    document.getElementById("gainPos").innerText = fmt(gainPositivi)+" €";
+    document.getElementById("gainPos").className = "positivo";
 
-    // grafici
+    document.getElementById("gainNeg").innerText = fmt(gainNegativi)+" €";
+    document.getElementById("gainNeg").className = "negativo";
+
+    // grafico gain cumulato basato su tabella
+    let gainCumulato = [];
+    let cumul = 0;
+
+    gainArray.slice().reverse().forEach(g => {
+        cumul += g;
+        gainCumulato.push(cumul);
+    });
+
     let labels = dati.map(d=>d.data).reverse();
-    let prezzi = dati.filter(d=>d.tipo==="acquisto").map(d=>d.prezzo).reverse();
-    let cumulato = [];
-    let cumul=0;
-    dati.filter(d=>d.tipo==="acquisto").forEach(d=>{cumul+=d.btc; cumulato.push(cumul);});
-let gainCumulato = [];
- 
-
-gainArray.slice().reverse().forEach(g => {
-    cumul += g;
-    gainCumulato.push(cumul);
-});
-    let prelieviCumulati=[];
-    cumul=0;
-    dati.filter(d=>d.tipo==="prelievo").forEach(d=>{cumul+=d.importoPrelevato; prelieviCumulati.push(cumul);});
-
-    new Chart(document.getElementById("chartPrezzo"),{
-        type:"line",
-        data:{labels, datasets:[{label:"Prezzo BTC", data:prezzi, tension:0.3}]}
-    });
-
-    new Chart(document.getElementById("chartCumulato"),{
-        type:"line",
-        data:{labels, datasets:[{label:"BTC accumulati", data:cumulato, tension:0.3},{label:"Prelievi cumulati (€)", data:prelieviCumulati, tension:0.3, borderColor:"red"}]}
-    });
 
     new Chart(document.getElementById("chartGain"),{
         type:"line",
-        data:{labels, datasets:[{label:"Gain cumulato (€)", data:gainCumulato, tension:0.3, segment:{borderColor:ctx=>ctx.p0.parsed.y>=0?'green':'red'}}]}
+        data:{
+            labels,
+            datasets:[{
+                label:"Gain cumulato (€)",
+                data:gainCumulato,
+                tension:0.3,
+                segment:{
+                    borderColor:ctx=>ctx.p0.parsed.y>=0?'green':'red'
+                }
+            }]
+        }
     });
 
 });
