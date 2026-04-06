@@ -153,6 +153,7 @@ fetch(url)
     let gainCumulato = [];
 
     let pmcArray = [];
+   let gainTotale = 0;
 
     data.forEach(r => {
 
@@ -185,6 +186,7 @@ fetch(url)
 
     let valoreTotale = portafoglio * prezzoAttuale;
     let gainTotale = valoreTotale - totaleInvest;
+    
 
     document.getElementById("capitale").innerText = fmt(capitale) + " €";
     document.getElementById("totInvest").innerText = fmt(totaleInvest) + " €";
@@ -245,6 +247,8 @@ fetch(url)
 
         let valoreRiga = btc * prezzoAttuale;
         let gain = valoreRiga - invest;
+        
+        gainTotale += gain;
 
         let tr = document.createElement("tr");
 
