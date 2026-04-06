@@ -95,6 +95,8 @@ fetch("menu.html")
     <div><b>Totale Importi Prelevati</b><br><span id="totPrelievi"></span></div>
     <div><b>Valore Bitcoin</b><br><span id="valoreBTC"></span></div>
     <div><b>Guadagno / Perdita</b><br><span id="totGain"></span></div>
+    <div><b>Gain Positivi</b><br><span id="gainPos"></span></div>
+<div><b>Gain Negativi</b><br><span id="gainNeg"></span></div>
 </div>
 
 <div class="card">
@@ -174,6 +176,8 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
     let valoreBitcoin = acquisti[acquisti.length-1].Valore || 0;
     let gainTotale = 0;
     let totPrelievi = 0;
+    let gainPositivi = 0;
+let gainNegativi = 0;
 
     const tbody = document.getElementById("tabella");
 
@@ -194,6 +198,12 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
             valoreRiga = btc*valoreBitcoin;
             gain = valoreRiga - invest;
             gainTotale += gain;
+
+            if(gain >= 0){
+        gainPositivi += gain;
+    } else {
+        gainNegativi += gain;
+    }
 
         } else if(r.tipo==="prelievo"){
             btcPrelevati = r.btcPrelevati;
@@ -228,6 +238,11 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
     document.getElementById("valoreBTC").innerText = fmt(valoreBitcoin)+" €";
     document.getElementById("totGain").innerText = fmt(gainTotale)+" €";
     document.getElementById("totGain").className = gainTotale>=0?"positivo":"negativo";
+    document.getElementById("gainPos").innerText = fmt(gainPositivi) + " €";
+document.getElementById("gainPos").className = "positivo";
+
+document.getElementById("gainNeg").innerText = fmt(gainNegativi) + " €";
+document.getElementById("gainNeg").className = "negativo";
 
     // grafici
     let labels = dati.map(d=>d.data).reverse();
