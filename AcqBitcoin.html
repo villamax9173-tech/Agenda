@@ -243,16 +243,50 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
     document.getElementById("gainNeg").innerText = fmt(gainNegativi)+" €";
     document.getElementById("gainNeg").className = "negativo";
 
-    // grafico gain cumulato basato su tabella
+    // ===== DATI GRAFICI =====
+    let labels = dati.map(d=>d.data).reverse();
+
+    let prezzi = dati.filter(d=>d.tipo==="acquisto").map(d=>d.prezzo).reverse();
+
+    let cumulato = [];
+    let cumulBTC = 0;
+    dati.slice().reverse().forEach(d=>{
+        if(d.tipo==="acquisto") cumulBTC += d.btc;
+        if(d.tipo==="prelievo") cumulBTC -= d.btcPrelevati;
+        cumulato.push(cumulBTC);
+    });
+
+    let prelieviCumulati = [];
+    let cumulPrel = 0;
+    dati.slice().reverse().forEach(d=>{
+        if(d.tipo==="prelievo") cumulPrel += d.importoPrelevato;
+        prelieviCumulati.push(cumulPrel);
+    });
+
+    // Gain cumulato basato sulla tabella
     let gainCumulato = [];
     let cumul = 0;
-
-    gainArray.slice().reverse().forEach(g => {
+    gainArray.slice().reverse().forEach(g=>{
         cumul += g;
         gainCumulato.push(cumul);
     });
 
-    let labels = dati.map(d=>d.data).reverse();
+    // ===== GRAFICI =====
+    new Chart(document.getElementById("chartPrezzo"),{
+        type:"line",
+        data:{labels,datasets:[{label:"Prezzo BTC", data:prezzi, tension:0.3}]}
+    });
+
+    new Chart(document.getElementById("chartCumulato"),{
+        type:"line",
+        data:{
+            labels,
+            datasets:[
+                {label:"BTC Portafoglio", data:cumulato, tension:0.3},
+                {label:"Prelievi cumulati (€)", data:prelieviCumulati, tension:0.3, borderColor:"red"}
+            ]
+        }
+    });
 
     new Chart(document.getElementById("chartGain"),{
         type:"line",
@@ -262,9 +296,7 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
                 label:"Gain cumulato (€)",
                 data:gainCumulato,
                 tension:0.3,
-                segment:{
-                    borderColor:ctx=>ctx.p0.parsed.y>=0?'green':'red'
-                }
+                segment:{borderColor:ctx=>ctx.p0.parsed.y>=0?'green':'red'}
             }]
         }
     });
