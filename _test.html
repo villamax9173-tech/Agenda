@@ -185,7 +185,7 @@ fetch(url)
     let capitale = ultimo.Capitale || 0;
 
     let valoreTotale = portafoglio * prezzoAttuale;
-    let gainTotale = valoreTotale - totaleInvest;
+    gainTotale = valoreTotale - totaleInvest;
     
 
     document.getElementById("capitale").innerText = fmt(capitale) + " €";
