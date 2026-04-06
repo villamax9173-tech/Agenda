@@ -136,14 +136,12 @@ fetch(url)
 .then(res => res.json())
 .then(data => {
 
-    // 🔹 Ordinamento ASC per calcoli
+    // 🔹 Ordine ASC per grafici
     data.sort((a, b) => new Date(a.DataMovimento) - new Date(b.DataMovimento));
 
     const prezzoAttuale = data[data.length - 1].Valore;
 
     let totaleInvest = 0;
-    let totaleBTC = 0;
-
     let cumulBTC = 0;
     let cumulInvest = 0;
 
@@ -151,9 +149,7 @@ fetch(url)
     let prezzi = [];
     let cumulato = [];
     let gainCumulato = [];
-
     let pmcArray = [];
-    let gainTotale = 0;
 
     data.forEach(r => {
 
@@ -161,8 +157,6 @@ fetch(url)
         let btc = r.AC || 0;
 
         totaleInvest += invest;
-        totaleBTC += btc;
-
         cumulBTC += btc;
         cumulInvest += invest;
 
@@ -178,65 +172,20 @@ fetch(url)
         pmcArray.push(pmc);
     });
 
-    // 🔹 Valori finali
     const ultimo = data[data.length - 1];
 
-    let portafoglio = ultimo.Portafoglio || totaleBTC;
+    let portafoglio = ultimo.Portafoglio || cumulBTC;
     let capitale = ultimo.Capitale || 0;
-
     let valoreTotale = portafoglio * prezzoAttuale;
-    gainTotale = valoreTotale - totaleInvest;
-    
 
     document.getElementById("capitale").innerText = fmt(capitale) + " €";
     document.getElementById("totInvest").innerText = fmt(totaleInvest) + " €";
     document.getElementById("totValore").innerText = fmt(valoreTotale) + " €";
-    document.getElementById("totGain").innerText = fmt(gainTotale) + " €";
-    document.getElementById("totGain").className = gainTotale >= 0 ? "positivo" : "negativo";
     document.getElementById("totBTC").innerText = portafoglio.toFixed(6);
 
-    // 🔹 Grafico prezzo + PMC
-    new Chart(document.getElementById("chartPrezzo"), {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [
-                { label: "Prezzo BTC", data: prezzi, tension: 0.3 },
-                { label: "PMC", data: pmcArray, tension: 0.3 }
-            ]
-        }
-    });
+    // 🔴 CALCOLO GAIN SOLO DALLA TABELLA
+    let gainTotale = 0;
 
-    // 🔹 BTC cumulati
-    new Chart(document.getElementById("chartCumulato"), {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "BTC accumulati",
-                data: cumulato,
-                tension: 0.3
-            }]
-        }
-    });
-
-    // 🔹 Gain cumulato con colori dinamici
-    new Chart(document.getElementById("chartGain"), {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "Gain cumulato (€)",
-                data: gainCumulato,
-                tension: 0.3,
-                segment: {
-                    borderColor: ctx => ctx.p0.parsed.y >= 0 ? 'green' : 'red'
-                }
-            }]
-        }
-    });
-
-    // 🔹 Tabella DESC
     const tbody = document.getElementById("tabella");
 
     data.slice().reverse().forEach(r => {
@@ -247,8 +196,8 @@ fetch(url)
 
         let valoreRiga = btc * prezzoAttuale;
         let gain = valoreRiga - invest;
-        
-        gainTotale += gain;
+
+        gainTotale += gain; // ✅ QUI SOMMI
 
         let tr = document.createElement("tr");
 
@@ -264,6 +213,49 @@ fetch(url)
         `;
 
         tbody.appendChild(tr);
+    });
+
+    // ✅ ORA È IDENTICO ALLA COLONNA
+    document.getElementById("totGain").innerText = fmt(gainTotale) + " €";
+    document.getElementById("totGain").className = gainTotale >= 0 ? "positivo" : "negativo";
+
+    // 🔹 Grafici
+    new Chart(document.getElementById("chartPrezzo"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [
+                { label: "Prezzo BTC", data: prezzi, tension: 0.3 },
+                { label: "PMC", data: pmcArray, tension: 0.3 }
+            ]
+        }
+    });
+
+    new Chart(document.getElementById("chartCumulato"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "BTC accumulati",
+                data: cumulato,
+                tension: 0.3
+            }]
+        }
+    });
+
+    new Chart(document.getElementById("chartGain"), {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Gain cumulato (€)",
+                data: gainCumulato,
+                tension: 0.3,
+                segment: {
+                    borderColor: ctx => ctx.p0.parsed.y >= 0 ? 'green' : 'red'
+                }
+            }]
+        }
     });
 
 });
