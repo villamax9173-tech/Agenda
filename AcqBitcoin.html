@@ -170,7 +170,7 @@ Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.
 
     // variabili riassuntive
     let cumulBTCAcq = 0; // somma AC storica
-    let portafoglio = 0; // BTC attuali
+    let portafoglio = acquisti[acquisti.length-1].Portafoglio || 0;
     let totaleInvestCompl = 0;
     let capitale = acquisti[acquisti.length-1].Capitale || 0;
     let valoreBitcoin = acquisti[acquisti.length-1].Valore || 0;
@@ -193,7 +193,7 @@ let gainNegativi = 0;
             importoPrelevato=0;
 
             cumulBTCAcq += btc;
-            portafoglio += btc;
+           
 
             valoreRiga = btc*valoreBitcoin;
             gain = valoreRiga - invest;
@@ -209,7 +209,7 @@ let gainNegativi = 0;
             btcPrelevati = r.btcPrelevati;
             importoPrelevato = r.importoPrelevato;
 
-            portafoglio -= btcPrelevati;
+           
             totPrelievi += importoPrelevato;
         }
 
