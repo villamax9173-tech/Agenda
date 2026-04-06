@@ -1,269 +1,111 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<meta charset="UTF-8">
-<title>Analisi Bitcoin</title>
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Text.Json;
 
-<link rel="stylesheet" href="menu.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+namespace AgendaVillamax.Api
+{
+    public class GetAcquisitiBitcoin
+    {
+        private readonly ILogger _logger;
+        private readonly IConfiguration _configuration;
 
-<style>
-body {
-    font-family: Arial;
-    margin: 20px;
-    background: #f5f5f5;
-}
-
-.container {
-    max-width: 1200px;
-    margin: auto;
-}
-
-.card {
-    background: white;
-    padding: 15px;
-    margin-top: 20px;
-    border-radius: 8px;
-}
-
-.summary {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.summary div {
-    flex: 1 1 180px;
-    background: #fafafa;
-    padding: 10px;
-    border-radius: 6px;
-    text-align: center;
-}
-
-.highlight {
-    background: #fff3cd;
-    font-size: 20px;
-    font-weight: bold;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-
-th, td {
-    padding: 8px;
-    text-align: right;
-}
-
-th {
-    background: #eee;
-}
-
-tr:nth-child(even) {
-    background: #fafafa;
-}
-
-.positivo { color: green; }
-.negativo { color: red; }
-
-h1 { margin-bottom: 10px; }
-</style>
-</head>
-
-<body>
-
-<div id="menu-container"></div>
-<script>
-fetch("menu.html")
-.then(res => res.text())
-.then(data => {
-    document.getElementById("menu-container").innerHTML = data;
-});
-</script>
-
-<div class="container">
-
-<h1>Analisi Acquisti e Prelievi Bitcoin</h1>
-
-<div class="card summary">
-    <div class="highlight"><b>Capitale Disponibile</b><br><span id="capitale"></span></div>
-    <div><b>BTC Portafoglio</b><br><span id="totBTC"></span></div>
-    <div><b>Totale BTC Acquistati</b><br><span id="totBTCAcq"></span></div>
-    <div><b>Totale Investito Complessivo</b><br><span id="totInvestCompl"></span></div>
-    <div><b>Totale Importi Prelevati</b><br><span id="totPrelievi"></span></div>
-    <div><b>Valore Bitcoin</b><br><span id="valoreBTC"></span></div>
-    <div><b>Guadagno / Perdita</b><br><span id="totGain"></span></div>
-</div>
-
-<div class="card">
-    <canvas id="chartPrezzo"></canvas>
-</div>
-
-<div class="card">
-    <canvas id="chartCumulato"></canvas>
-</div>
-
-<div class="card">
-    <canvas id="chartGain"></canvas>
-</div>
-
-<div class="card">
-<table>
-<thead>
-<tr>
-<th>Data</th>
-<th>Invest</th>
-<th>Prelievo BTC</th>
-<th>Importo Prelevato</th>
-<th>Comm</th>
-<th>BTC</th>
-<th>Prezzo</th>
-<th>Valore Attuale</th>
-<th>Gain €</th>
-</tr>
-</thead>
-<tbody id="tabella"></tbody>
-</table>
-</div>
-
-</div>
-
-<script>
-const fmt = v => v.toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
-
-const urlAcquisti = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetAcquisitiBitcoin?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
-const urlPrelievi = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetPrelieviBitcoin?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
-
-Promise.all([fetch(urlAcquisti).then(r=>r.json()), fetch(urlPrelievi).then(r=>r.json())])
-.then(([acquisti, prelievi]) => {
-
-    // unione dati
-    const dati = [];
-
-    acquisti.forEach(a => {
-        dati.push({
-            tipo: "acquisto",
-            data: a.DataMovimento,
-            invest: a.Invest || 0,
-            comm: a.Comm || 0,
-            btc: a.AC || 0,
-            prezzo: a.Prezzo || 0
-        });
-    });
-
-    prelievi.forEach(p => {
-        dati.push({
-            tipo: "prelievo",
-            data: p.DataPrelievo,
-            btcPrelevati: p.BitCoinPrelevati || 0,
-            importoPrelevato: p.ImportoPrelevato || 0,
-            prezzo: p.PrezzoPrelievo || 0
-        });
-    });
-
-    // ordina per data desc
-    dati.sort((a,b)=>new Date(b.data)-new Date(a.data));
-
-    // variabili riassuntive
-    let cumulBTCAcq = 0; // somma AC storica
-    let portafoglio = 0; // BTC attuali
-    let totaleInvestCompl = 0;
-    let capitale = acquisti[acquisti.length-1].Capitale || 0;
-    let valoreBitcoin = acquisti[acquisti.length-1].Valore || 0;
-    let gainTotale = 0;
-    let totPrelievi = 0;
-
-    const tbody = document.getElementById("tabella");
-
-    dati.forEach(r => {
-
-        let invest=0, btc=0, comm=0, valoreRiga=0, gain=0, btcPrelevati=0, importoPrelevato=0;
-
-        if(r.tipo==="acquisto"){
-            invest=r.invest;
-            btc=r.btc;
-            comm=r.comm;
-            btcPrelevati=0;
-            importoPrelevato=0;
-
-            cumulBTCAcq += btc;
-            portafoglio += btc;
-
-            valoreRiga = btc*valoreBitcoin;
-            gain = valoreRiga - invest;
-            gainTotale += gain;
-
-        } else if(r.tipo==="prelievo"){
-            btcPrelevati = r.btcPrelevati;
-            importoPrelevato = r.importoPrelevato;
-
-            portafoglio -= btcPrelevati;
-            totPrelievi += importoPrelevato;
+        public GetAcquisitiBitcoin(ILoggerFactory loggerFactory, IConfiguration configuration)
+        {
+            _logger = loggerFactory.CreateLogger<GetAcquisitiBitcoin>();
+            _configuration = configuration;
         }
 
-        let tr = document.createElement("tr");
-        tr.innerHTML = `
-            <td style="text-align:left">${r.data}</td>
-            <td>${fmt(invest)}</td>
-            <td>${btcPrelevati.toFixed(6)}</td>
-            <td>${fmt(importoPrelevato)}</td>
-            <td>${fmt(comm)}</td>
-            <td>${r.tipo==="acquisto"?btc.toFixed(6):""}</td>
-            <td>${fmt(r.prezzo||0)}</td>
-            <td>${r.tipo==="acquisto"?fmt(valoreRiga):""}</td>
-            <td class="${gain>=0?'positivo':'negativo'}">${r.tipo==="acquisto"?fmt(gain):""}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+        [Function("GetAcquisitiBitcoin")]
+        public async Task<HttpResponseData> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequestData req)
+        {
+            var response = req.CreateResponse(HttpStatusCode.OK);
 
-    totaleInvestCompl = cumulBTCAcq*valoreBitcoin;
+            try
+            {
+                var connectionString = _configuration["SqlConnectionString"];
 
-    document.getElementById("capitale").innerText = fmt(capitale)+" €";
-    document.getElementById("totBTC").innerText = portafoglio.toFixed(6);
-    document.getElementById("totBTCAcq").innerText = cumulBTCAcq.toFixed(6);
-    document.getElementById("totInvestCompl").innerText = fmt(totaleInvestCompl)+" €";
-    document.getElementById("totPrelievi").innerText = fmt(totPrelievi)+" €";
-    document.getElementById("valoreBTC").innerText = fmt(valoreBitcoin)+" €";
-    document.getElementById("totGain").innerText = fmt(gainTotale)+" €";
-    document.getElementById("totGain").className = gainTotale>=0?"positivo":"negativo";
+                using var conn = new SqlConnection(connectionString);
+                await conn.OpenAsync();
 
-    // grafici
-    let labels = dati.map(d=>d.data).reverse();
-    let prezzi = dati.filter(d=>d.tipo==="acquisto").map(d=>d.prezzo).reverse();
-    let cumulato = [];
-    let cumul=0;
-    dati.filter(d=>d.tipo==="acquisto").forEach(d=>{cumul+=d.btc; cumulato.push(cumul);});
-    let gainCumulato=[];
-    cumul=0;
-    let cumulInvest=0;
-    dati.filter(d=>d.tipo==="acquisto").forEach(d=>{
-        cumul+=d.btc;
-        cumulInvest+=d.invest;
-        gainCumulato.push(cumul*valoreBitcoin - cumulInvest);
-    });
-    let prelieviCumulati=[];
-    cumul=0;
-    dati.filter(d=>d.tipo==="prelievo").forEach(d=>{cumul+=d.importoPrelevato; prelieviCumulati.push(cumul);});
+                var query = @"
+                    SELECT 
+                        DataMovimento,
+                        Impo,
+                        Invest,
+                        Comm,
+                        AC,
+                        Prezzo,
+                        Valore,
+                        Portafoglio,
+                        Capitale
+                    FROM AcquisitiBitcoin
+                    ORDER BY DataMovimento DESC";
 
-    new Chart(document.getElementById("chartPrezzo"),{
-        type:"line",
-        data:{labels, datasets:[{label:"Prezzo BTC", data:prezzi, tension:0.3}]}
-    });
+                using var cmd = new SqlCommand(query, conn);
+                using var reader = await cmd.ExecuteReaderAsync();
 
-    new Chart(document.getElementById("chartCumulato"),{
-        type:"line",
-        data:{labels, datasets:[{label:"BTC accumulati", data:cumulato, tension:0.3},{label:"Prelievi cumulati (€)", data:prelieviCumulati, tension:0.3, borderColor:"red"}]}
-    });
+                var results = new List<object>();
 
-    new Chart(document.getElementById("chartGain"),{
-        type:"line",
-        data:{labels, datasets:[{label:"Gain cumulato (€)", data:gainCumulato, tension:0.3, segment:{borderColor:ctx=>ctx.p0.parsed.y>=0?'green':'red'}}]}
-    });
+                decimal totaleAC = 0;
+                decimal? prezzoAttuale = null;
 
-});
-</script>
+                while (await reader.ReadAsync())
+                {
+                    var ac = reader["AC"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["AC"]);
+                    var prezzo = reader["Prezzo"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Prezzo"]);
 
-</body>
-</html>
+                    if (ac.HasValue)
+                        totaleAC += ac.Value;
+
+                    // primo prezzo = più recente
+                    if (prezzoAttuale == null && prezzo.HasValue)
+                        prezzoAttuale = prezzo;
+
+                    results.Add(new
+                    {
+                        DataMovimento = Convert.ToDateTime(reader["DataMovimento"]).ToString("yyyy-MM-dd"),
+                        Impo = Convert.ToDecimal(reader["Impo"]),
+                        Invest = reader["Invest"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Invest"]),
+                        Comm = reader["Comm"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Comm"]),
+                        AC = ac,
+                        Prezzo = prezzo,
+                        Valore = reader["Valore"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Valore"]),
+                        Portafoglio = reader["Portafoglio"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Portafoglio"]),
+                        Capitale = reader["Capitale"] == DBNull.Value ? (decimal?)null : Convert.ToDecimal(reader["Capitale"])
+                    });
+                }
+
+                // ======================
+                // CALCOLO TEORICO
+                // ======================
+                decimal? totaleCapitaleTeorico = null;
+
+                if (prezzoAttuale.HasValue)
+                    totaleCapitaleTeorico = prezzoAttuale.Value * totaleAC;
+
+                var output = new
+                {
+                    Dati = results,
+                    TotaleBTC_Acquistati = totaleAC,
+                    PrezzoAttuale = prezzoAttuale,
+                    TotaleCapitaleTeorico = totaleCapitaleTeorico
+                };
+
+                await response.WriteStringAsync(JsonSerializer.Serialize(output));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Errore in GetAcquisitiBitcoin");
+                response = req.CreateResponse(HttpStatusCode.InternalServerError);
+                await response.WriteStringAsync($"{{\"error\":\"{ex.Message}\"}}");
+            }
+
+            return response;
+        }
+    }
+}
