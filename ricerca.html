@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Ricerca Movimenti</title>
+
+<link rel="stylesheet" href="menu.css">
+
+<style>
+body {
+    font-family: Arial;
+    margin: 20px;
+    background: #f5f5f5;
+}
+
+.container {
+    max-width: 1100px;
+    margin: auto;
+}
+
+.card {
+    background: white;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 6px rgba(0,0,0,0.08);
+}
+
+input, select {
+    padding:6px;
+    margin-right:10px;
+}
+
+button {
+    padding:6px 12px;
+    background:#2c3e50;
+    color:white;
+    border:none;
+    cursor:pointer;
+    border-radius:5px;
+}
+
+table {
+    width:100%;
+    border-collapse: collapse;
+}
+
+th {
+    background:#2c3e50;
+    color:white;
+    text-align:left;
+}
+
+td {
+    padding:8px;
+    border-bottom:1px solid #eee;
+}
+
+.importo { text-align:right; font-weight:bold; }
+.dare { color:#c0392b; }
+.avere { color:#2e7d32; }
+
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<div class="container">
+
+<h2>Ricerca Movimenti</h2>
+
+<div class="card">
+
+    Data da: <input type="date" id="dataDa">
+    a: <input type="date" id="dataA">
+
+    Importo min: <input type="number" id="importoMin">
+    max: <input type="number" id="importoMax">
+
+    Tipo:
+    <select id="tipo">
+        <option value="">Tutti</option>
+        <option value="D">Dare</option>
+        <option value="A">Avere</option>
+    </select>
+
+    <button onclick="cerca()">Cerca</button>
+
+</div>
+
+<div class="card">
+<table id="tabella">
+<thead>
+<tr>
+<th>Data</th>
+<th>Causale</th>
+<th style="text-align:right">Importo</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+fetch("menu.html")
+.then(r=>r.text())
+.then(d=>document.getElementById("menu-container").innerHTML=d);
+
+function cerca(){
+
+    let params = new URLSearchParams({
+        dataDa: document.getElementById("dataDa").value,
+        dataA: document.getElementById("dataA").value,
+        importoMin: document.getElementById("importoMin").value,
+        importoMax: document.getElementById("importoMax").value,
+        tipo: document.getElementById("tipo").value
+    });
+
+    let url = "https://TUO_ENDPOINT/api/GetMovimentiRicerca?" + params.toString();
+
+    fetch(url)
+    .then(r=>r.json())
+    .then(renderTabella);
+}
+
+function renderTabella(dati){
+
+    const tbody=document.querySelector("#tabella tbody");
+    tbody.innerHTML="";
+
+    dati.forEach(r=>{
+
+        let tipoClass = r.azione==="D"?"dare":"avere";
+
+        tbody.innerHTML+=`
+        <tr>
+            <td>${r.data}</td>
+            <td>${r.causale}</td>
+            <td class="importo ${tipoClass}">
+                ${parseFloat(r.importo).toFixed(2)}
+            </td>
+        </tr>`;
+    });
+}
+
+</script>
+
+</body>
+</html>
