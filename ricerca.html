@@ -122,7 +122,7 @@ function cerca(){
     });
 
     let url = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetMovimentiRicerca?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==&" + params.toString();
-
+    console.log(url);
     fetch(url)
     .then(r=>r.json())
     .then(renderTabella);
