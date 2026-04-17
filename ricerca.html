@@ -135,14 +135,14 @@ function renderTabella(dati){
 
     dati.forEach(r=>{
 
-        let tipoClass = r.azione==="D"?"dare":"avere";
+        let tipoClass = r.azione==="D" ? "dare" : "avere";
 
         tbody.innerHTML+=`
         <tr>
-            <td>${r.data}</td>
-            <td>${r.causale}</td>
+            <td>${r.DataContabile}</td>
+            <td>${r.Causale}</td>
             <td class="importo ${tipoClass}">
-                ${parseFloat(r.importo).toFixed(2)}
+                ${parseFloat(r.Importo).toFixed(2)}
             </td>
         </tr>`;
     });
