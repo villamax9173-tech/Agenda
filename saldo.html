@@ -5,13 +5,13 @@
 <title>Analisi Saldi</title>
 
 <link rel="stylesheet" href="menu.css">
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body { font-family: Arial; margin: 20px; }
 canvas { max-width: 100%; margin-bottom: 40px; }
 h2 { margin-top: 40px; }
+.filter { margin-bottom: 20px; }
 </style>
 </head>
 
@@ -27,7 +27,13 @@ fetch("menu.html")
 });
 </script>
 
-<h2>📈 Andamento Saldo</h2>
+<div class="filter">
+    <label>Da mese:</label>
+    <input type="month" id="filterDate">
+    <button onclick="applicaFiltro()">Applica</button>
+</div>
+
+<h2>📈 Andamento Saldo + Trend</h2>
 <canvas id="saldoChart"></canvas>
 
 <h2>📅 Media Mensile</h2>
@@ -40,15 +46,31 @@ fetch("menu.html")
 
 const API_URL = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetSaldi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
+let rawData = [];
+let charts = [];
+
 fetch(API_URL)
 .then(res => res.json())
 .then(data => {
+    rawData = data;
+    applicaFiltro(); // prima render
+});
+
+function applicaFiltro() {
+
+    const filterValue = document.getElementById("filterDate").value;
+
+    let data = [...rawData];
+
+    // filtro per mese
+    if (filterValue) {
+        data = data.filter(d => d.dataMOV >= filterValue);
+    }
 
     // 1️⃣ normalizzazione → ultimo saldo per giorno
     const dailyMap = {};
-
     data.forEach(item => {
-        dailyMap[item.dataMOV] = item.saldo; // sovrascrive → ultimo vince
+        dailyMap[item.dataMOV] = item.saldo;
     });
 
     const dailyData = Object.keys(dailyMap)
@@ -58,89 +80,132 @@ fetch(API_URL)
             saldo: dailyMap[date]
         }));
 
+    // pulizia grafici precedenti
+    charts.forEach(c => c.destroy());
+    charts = [];
+
     // =========================
-    // 📈 GRAFICO PRINCIPALE
+    // 📈 GRAFICO + TREND LINE
     // =========================
 
     const labels = dailyData.map(d => d.date);
     const values = dailyData.map(d => d.saldo);
 
-    new Chart(document.getElementById("saldoChart"), {
+    // 🔥 REGRESSIONE LINEARE
+    const trend = calcolaTrend(values);
+
+    const chart1 = new Chart(document.getElementById("saldoChart"), {
         type: 'line',
         data: {
             labels: labels,
-            datasets: [{
-                label: 'Saldo',
-                data: values,
-                borderWidth: 2,
-                fill: false
-            }]
+            datasets: [
+                {
+                    label: 'Saldo',
+                    data: values,
+                    borderWidth: 2,
+                    fill: false
+                },
+                {
+                    label: 'Trend',
+                    data: trend,
+                    borderDash: [5,5],
+                    borderWidth: 2,
+                    fill: false
+                }
+            ]
         }
     });
 
+    charts.push(chart1);
+
     // =========================
-    // 📅 ANALISI MENSILE
+    // 📅 MENSILE
     // =========================
 
     const monthly = {};
 
     dailyData.forEach(d => {
-        const month = d.date.substring(0, 7); // YYYY-MM
-
-        if (!monthly[month]) {
-            monthly[month] = { sum: 0, count: 0 };
-        }
+        const month = d.date.substring(0, 7);
+        if (!monthly[month]) monthly[month] = { sum: 0, count: 0 };
 
         monthly[month].sum += d.saldo;
         monthly[month].count++;
     });
 
-    const monthlyLabels = Object.keys(monthly).sort();
-    const monthlyValues = monthlyLabels.map(m => monthly[m].sum / monthly[m].count);
+    const mLabels = Object.keys(monthly).sort();
+    const mValues = mLabels.map(m => monthly[m].sum / monthly[m].count);
 
-    new Chart(document.getElementById("monthlyChart"), {
+    const chart2 = new Chart(document.getElementById("monthlyChart"), {
         type: 'bar',
         data: {
-            labels: monthlyLabels,
+            labels: mLabels,
             datasets: [{
-                label: 'Saldo Medio Mensile',
-                data: monthlyValues
+                label: 'Media Mensile',
+                data: mValues
             }]
         }
     });
 
+    charts.push(chart2);
+
     // =========================
-    // 📊 ANALISI ANNUALE
+    // 📊 ANNUALE
     // =========================
 
     const yearly = {};
 
     dailyData.forEach(d => {
         const year = d.date.substring(0, 4);
-
-        if (!yearly[year]) {
-            yearly[year] = { sum: 0, count: 0 };
-        }
+        if (!yearly[year]) yearly[year] = { sum: 0, count: 0 };
 
         yearly[year].sum += d.saldo;
         yearly[year].count++;
     });
 
-    const yearlyLabels = Object.keys(yearly).sort();
-    const yearlyValues = yearlyLabels.map(y => yearly[y].sum / yearly[y].count);
+    const yLabels = Object.keys(yearly).sort();
+    const yValues = yLabels.map(y => yearly[y].sum / yearly[y].count);
 
-    new Chart(document.getElementById("yearlyChart"), {
+    const chart3 = new Chart(document.getElementById("yearlyChart"), {
         type: 'bar',
         data: {
-            labels: yearlyLabels,
+            labels: yLabels,
             datasets: [{
-                label: 'Saldo Medio Annuale',
-                data: yearlyValues
+                label: 'Media Annuale',
+                data: yValues
             }]
         }
     });
 
-});
+    charts.push(chart3);
+}
+
+
+// =========================
+// 📉 FUNZIONE TREND LINEARE
+// =========================
+function calcolaTrend(values) {
+
+    const n = values.length;
+    let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+
+    for (let i = 0; i < n; i++) {
+        sumX += i;
+        sumY += values[i];
+        sumXY += i * values[i];
+        sumXX += i * i;
+    }
+
+    const m = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+    const b = (sumY - m * sumX) / n;
+
+    const trend = [];
+    for (let i = 0; i < n; i++) {
+        trend.push(m * i + b);
+    }
+
+    return trend;
+}
+
 </script>
 
 </body>
