@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Analisi Saldi</title>
+
+<link rel="stylesheet" href="menu.css">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body { font-family: Arial; margin: 20px; }
+canvas { max-width: 100%; margin-bottom: 40px; }
+h2 { margin-top: 40px; }
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<script>
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+    document.getElementById("menu-container").innerHTML = data;
+});
+</script>
+
+<h2>📈 Andamento Saldo</h2>
+<canvas id="saldoChart"></canvas>
+
+<h2>📅 Media Mensile</h2>
+<canvas id="monthlyChart"></canvas>
+
+<h2>📊 Media Annuale</h2>
+<canvas id="yearlyChart"></canvas>
+
+<script>
+
+const API_URL = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetSaldi?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+fetch(API_URL)
+.then(res => res.json())
+.then(data => {
+
+    // 1️⃣ normalizzazione → ultimo saldo per giorno
+    const dailyMap = {};
+
+    data.forEach(item => {
+        dailyMap[item.dataMOV] = item.saldo; // sovrascrive → ultimo vince
+    });
+
+    const dailyData = Object.keys(dailyMap)
+        .sort()
+        .map(date => ({
+            date,
+            saldo: dailyMap[date]
+        }));
+
+    // =========================
+    // 📈 GRAFICO PRINCIPALE
+    // =========================
+
+    const labels = dailyData.map(d => d.date);
+    const values = dailyData.map(d => d.saldo);
+
+    new Chart(document.getElementById("saldoChart"), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Saldo',
+                data: values,
+                borderWidth: 2,
+                fill: false
+            }]
+        }
+    });
+
+    // =========================
+    // 📅 ANALISI MENSILE
+    // =========================
+
+    const monthly = {};
+
+    dailyData.forEach(d => {
+        const month = d.date.substring(0, 7); // YYYY-MM
+
+        if (!monthly[month]) {
+            monthly[month] = { sum: 0, count: 0 };
+        }
+
+        monthly[month].sum += d.saldo;
+        monthly[month].count++;
+    });
+
+    const monthlyLabels = Object.keys(monthly).sort();
+    const monthlyValues = monthlyLabels.map(m => monthly[m].sum / monthly[m].count);
+
+    new Chart(document.getElementById("monthlyChart"), {
+        type: 'bar',
+        data: {
+            labels: monthlyLabels,
+            datasets: [{
+                label: 'Saldo Medio Mensile',
+                data: monthlyValues
+            }]
+        }
+    });
+
+    // =========================
+    // 📊 ANALISI ANNUALE
+    // =========================
+
+    const yearly = {};
+
+    dailyData.forEach(d => {
+        const year = d.date.substring(0, 4);
+
+        if (!yearly[year]) {
+            yearly[year] = { sum: 0, count: 0 };
+        }
+
+        yearly[year].sum += d.saldo;
+        yearly[year].count++;
+    });
+
+    const yearlyLabels = Object.keys(yearly).sort();
+    const yearlyValues = yearlyLabels.map(y => yearly[y].sum / yearly[y].count);
+
+    new Chart(document.getElementById("yearlyChart"), {
+        type: 'bar',
+        data: {
+            labels: yearlyLabels,
+            datasets: [{
+                label: 'Saldo Medio Annuale',
+                data: yearlyValues
+            }]
+        }
+    });
+
+});
+</script>
+
+</body>
+</html>
