@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<link rel="stylesheet" href="menu.css">
+<meta charset="UTF-8">
+<title>Andamento Differenze</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{font-family:Arial;margin:20px;background:#f7f7f7;}
+h1{text-align:center;}
+
+.filtro{
+text-align:center;
+margin:20px;
+}
+
+canvas{
+max-width:900px;
+margin:auto;
+display:block;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<script>
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
+</script>
+
+<h1>Andamento Differenza</h1>
+
+<div class="filtro">
+<input type="month" id="meseFiltro">
+<button onclick="carica()">Filtra</button>
+</div>
+
+<canvas id="grafico"></canvas>
+
+<script>
+
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetDifferenze?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+let dati=[]
+let grafico=null
+
+async function carica(){
+
+const res=await fetch(API)
+dati=await res.json()
+
+render()
+
+}
+
+function render(){
+
+const meseSel=document.getElementById("meseFiltro").value
+
+let filtrati=dati
+
+if(meseSel){
+
+filtrati=dati.filter(d=>{
+
+const data=new Date(d.Data)
+const ym=data.getFullYear()+"-"+String(data.getMonth()+1).padStart(2,"0")
+
+return ym===meseSel
+
+})
+
+}
+
+const labels=[]
+const valori=[]
+
+filtrati.forEach(d=>{
+
+const data=new Date(d.Data)
+
+labels.push(data.toLocaleDateString("it-IT"))
+valori.push(d.Differenza)
+
+})
+
+if(grafico) grafico.destroy()
+
+grafico=new Chart(document.getElementById("grafico"),{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:"Differenza",
+data:valori,
+fill:false,
+tension:0.2
+}]
+}
+})
+
+}
+
+carica()
+
+</script>
+
+</body>
+</html>
