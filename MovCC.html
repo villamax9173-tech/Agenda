@@ -10,16 +10,75 @@
 <style>
 body {
     font-family: Arial;
-    margin: 20px;
+    margin: 0;
     background: #f5f5f5;
 }
 
-h1 { text-align: center; }
+/* -------- LOGIN UI -------- */
+
+#loginOverlay {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #2c3e50, #34495e);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.login-card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.login-card h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.login-card input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.login-card button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    background: #2c3e50;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.login-card button:hover {
+    background: #1a252f;
+}
+
+#error {
+    color: red;
+    margin-top: 10px;
+    font-size: 14px;
+}
+
+/* -------- CONTENUTO -------- */
 
 .container {
     max-width: 1100px;
     margin: auto;
+    padding: 20px;
 }
+
+h1 { text-align: center; }
 
 .card {
     background: white;
@@ -29,12 +88,343 @@ h1 { text-align: center; }
     box-shadow: 0 0 6px rgba(0,0,0,0.08);
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px; }
+
+th {
+    background: #2c3e50;
+    color: white;
+    text-align: left;
 }
 
-th, td { padding: 8px; }
+td { border-bottom: 1px solid #eee; }
+tr:hover { background: #fafafa; }
+
+.importo { text-align: right; font-weight: bold; }
+.dare { color: #c0392b; }
+.avere { color: #2e7d32; }
+
+.grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+button.tab {
+    margin-right:5px;
+    padding:6px 10px;
+    border:none;
+    cursor:pointer;
+    border-radius:5px;
+    background:#ddd;
+}
+
+button.tab.active {
+    background:#2c3e50;
+    color:white;
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+<div id="loginOverlay">
+    <div class="login-card">
+        <h2>Accesso</h2>
+        <input type="password" id="passwordInput" placeholder="Inserisci password">
+        <button onclick="checkPassword()">Accedi</button>
+        <div id="error"></div>
+    </div>
+</div>
+
+<div id="menu-container"></div>
+
+<div class="container">
+<h1>Movimenti Conto Corrente</h1>
+
+<div id="tabs"></div>
+
+<div class="card">
+    <input type="text" id="filtro" placeholder="Cerca causale...">
+    <div id="totali" style="margin:10px 0;font-weight:bold;"></div>
+
+    <table id="tabella">
+        <thead>
+        <tr>
+            <th>Data</th>
+            <th>Causale</th>
+            <th style="text-align:right">Importo</th>
+        </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</div>
+
+<div class="grid">
+<div class="card">
+    <h3>Saldo nel tempo</h3>
+    <canvas id="saldoChart"></canvas>
+</div>
+
+<div class="card">
+    <h3>Entrate vs Uscite</h3>
+    <canvas id="pieChart"></canvas>
+</div>
+</div>
+
+<div class="card">
+    <h3>Spesa per giorno</h3>
+    <canvas id="barChart"></canvas>
+</div>
+
+</div>
+
+<script>
+
+// ---------------- MENU ----------------
+fetch("menu.html")
+.then(r=>r.text())
+.then(d=>document.getElementById("menu-container").innerHTML=d);
+
+// ---------------- PASSWORD ----------------
+
+function codificaData(data){
+    const map = ['a','b','c','d','e','f','g','h','i','j'];
+    return data.replace(/\d/g, d => map[d])
+               .replace(/\//g, '@');
+}
+
+function generaPasswordOggi(){
+    let oggi = new Date();
+
+    let raw =
+        String(oggi.getDate()).padStart(2,'0') + "/" +
+        String(oggi.getMonth()+1).padStart(2,'0') + "/" +
+        oggi.getFullYear();
+
+    return codificaData(raw);
+}
+
+// ---------------- URL NASCOSTO ----------------
+
+function getUrl(){
+
+    const parts = [
+        "I-rrqvXKD9io",
+        "sCOpeRZbyFE",
+        "uhXI_HuPb2QZ",
+        "oGpMU95g9AzF",
+        "uuPP7BQ=="
+    ];
+
+    const key = parts.join("");
+
+    return "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=" + key;
+}
+
+// ---------------- LOGIN ----------------
+
+function checkPassword(){
+
+    let input = document.getElementById("passwordInput").value;
+    let corretta = generaPasswordOggi();
+
+    if(input === corretta){
+
+        sessionStorage.setItem("auth","ok");
+
+        document.getElementById("loginOverlay").style.display="none";
+
+        caricaDati();
+
+    } else {
+        document.getElementById("error").innerText="Password errata";
+    }
+}
+
+window.onload = () => {
+    if(sessionStorage.getItem("auth")==="ok"){
+        document.getElementById("loginOverlay").style.display="none";
+        caricaDati();
+    }
+};
+
+// ---------------- DATI ----------------
+
+let dati=[];
+let datiPerMese={};
+let meseAttivo="";
+let filtroTesto="";
+
+const mesi = ["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"];
+
+let saldoChart, pieChart, barChart;
+
+function caricaDati(){
+
+    const url = getUrl();
+
+        
+fetch(getUrl())
+.then(r=>r.json())
+.then(json=>{
+
+    dati = json.map(r=>{
+        let d = normalizzaData(r.DataContabile);
+        let date = new Date(d);
+
+        return {
+            data: date,
+            label: date.getDate()+" "+mesi[date.getMonth()],
+            causale: (r.Causale||"").trim(),
+            importo: parseFloat(r.Importo),
+            tipo: r.azione
+        };
+    });
+
+    dati.sort((a,b)=>a.data-b.data);
+
+    dati.forEach(r=>{
+        let key = r.data.getFullYear()+"-"+(r.data.getMonth()+1).toString().padStart(2,'0');
+        if(!datiPerMese[key]) datiPerMese[key]=[];
+        datiPerMese[key].push(r);
+    });
+
+    meseAttivo = Object.keys(datiPerMese).sort().reverse()[0];
+
+    creaTabs();
+    renderTabella();
+    creaGrafici();
+});
+}
+
+// ---------------- UI ----------------
+
+document.addEventListener("input", e=>{
+    if(e.target.id==="filtro"){
+        filtroTesto = e.target.value.toLowerCase();
+        renderTabella();
+        creaGrafici();
+    }
+});
+
+function normalizzaData(d){
+    if(!d) return "";
+    let clean = d.replace(/[^\d-]/g,"");
+    return clean.substring(0,10);
+}
+
+function creaTabs(){
+    const container = document.getElementById("tabs");
+    container.innerHTML="";
+
+    Object.keys(datiPerMese).sort().reverse().forEach(k=>{
+        let [anno,mese]=k.split("-");
+        let nome = mesi[parseInt(mese)-1]+" "+anno;
+
+        let btn=document.createElement("button");
+        btn.className="tab"+(k===meseAttivo?" active":"");
+        btn.innerText=nome;
+
+        btn.onclick=()=>{
+            meseAttivo=k;
+            creaTabs();
+            renderTabella();
+            creaGrafici();
+        };
+
+        container.appendChild(btn);
+    });
+}
+
+function renderTabella(){
+    const tbody=document.querySelector("#tabella tbody");
+    tbody.innerHTML="";
+
+    let lista = datiPerMese[meseAttivo] || [];
+
+    let entrate=0, uscite=0;
+
+    lista
+    .filter(r=>r.causale.toLowerCase().includes(filtroTesto))
+    .slice().reverse()
+    .forEach(r=>{
+
+        if(r.importo>0) entrate+=r.importo;
+        else uscite+=Math.abs(r.importo);
+
+        let tipoClass = r.tipo==="D"?"dare":"avere";
+
+        tbody.innerHTML+=`
+        <tr>
+            <td>${r.label}</td>
+            <td>${r.causale}</td>
+            <td class="importo ${tipoClass}">
+                ${r.importo.toFixed(2)}
+            </td>
+        </tr>`;
+    });
+
+    document.getElementById("totali").innerHTML =
+        `Entrate: ${entrate.toFixed(2)} | Uscite: ${uscite.toFixed(2)} | Saldo: ${(entrate-uscite).toFixed(2)}`;
+}
+
+function creaGrafici(){
+
+    let lista = datiPerMese[meseAttivo] || [];
+    lista = lista.filter(r=>r.causale.toLowerCase().includes(filtroTesto));
+
+    let labels=[], saldo=[], cumulato=0;
+    let entrate=0, uscite=0;
+    let perGiorno={};
+
+    lista.forEach(r=>{
+        cumulato+=r.importo;
+        labels.push(r.label);
+        saldo.push(cumulato);
+
+        if(r.importo>0) entrate+=r.importo;
+        else uscite+=Math.abs(r.importo);
+
+        let key=r.data.toISOString().substring(0,10);
+
+        if(!perGiorno[key]){
+            perGiorno[key]={label:r.label,data:r.data,totale:0};
+        }
+        perGiorno[key].totale+=Math.abs(r.importo);
+    });
+
+    if(saldoChart) saldoChart.destroy();
+    if(pieChart) pieChart.destroy();
+    if(barChart) barChart.destroy();
+
+    saldoChart = new Chart(document.getElementById("saldoChart"),{
+        type:"line",
+        data:{ labels:labels, datasets:[{ label:"Saldo", data:saldo }] }
+    });
+
+    pieChart = new Chart(document.getElementById("pieChart"),{
+        type:"pie",
+        data:{ labels:["Entrate","Uscite"], datasets:[{data:[entrate,uscite]}] }
+    });
+
+    let giorniArray = Object.values(perGiorno);
+    giorniArray.sort((a,b)=>a.data-b.data);
+
+    barChart = new Chart(document.getElementById("barChart"),{
+        type:"bar",
+        data:{
+            labels:giorniArray.map(g=>g.label),
+            datasets:[{ label:"Speso", data:giorniArray.map(g=>g.totale) }]
+        }
+    });
+}
+
+</script>
+
+</body>
+</html>th, td { padding: 8px; }
 
 th {
     background: #2c3e50;
