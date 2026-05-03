@@ -4,9 +4,146 @@
 <link rel="stylesheet" href="menu.css">
 <meta charset="UTF-8">
 <title>Andamento Differenze</title>
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<link rel="stylesheet" href="menu.css">
+<meta charset="UTF-8">
+<title>Andamento Differenze</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+body{font-family:Arial;margin:20px;background:#f7f7f7;}
+h1{text-align:center;}
+
+.filtro{
+text-align:center;
+margin:20px;
+}
+
+canvas{
+max-width:900px;
+margin:auto;
+display:block;
+}
+</style>
+</head>
+
+<body>
+
+<div id="menu-container"></div>
+
+<script>
+fetch("menu.html")
+.then(res => res.text())
+.then(data => {
+document.getElementById("menu-container").innerHTML = data;
+});
+</script>
+
+<h1>Andamento Differenza</h1>
+
+<div class="filtro">
+<input type="month" id="meseFiltro">
+<button onclick="render()">Filtra</button>
+
+<div id="riepilogo" style="font-size:18px; font-weight:bold; margin-top:10px;"></div>
+</div>
+
+<canvas id="grafico"></canvas>
+
+<script>
+
+const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetDifferenze?code=I-rrqvXKD8iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+
+let dati=[]
+let grafico=null
+
+async function carica(){
+
+const res=await fetch(API)
+dati=await res.json()
+
+render()
+
+}
+
+// parsing data stabile
+function parseData(d){
+const [y,m,day] = d.Data.split("-")
+return new Date(y, m-1, day)
+}
+
+function render(){
+
+const meseSel=document.getElementById("meseFiltro").value
+
+let filtrati=dati
+
+if(meseSel){
+
+filtrati=dati.filter(d=>{
+
+const data=parseData(d)
+const ym=data.getFullYear()+"-"+String(data.getMonth()+1).padStart(2,"0")
+
+return ym===meseSel
+
+})
+
+}
+
+// ordina per data
+filtrati.sort((a,b)=> parseData(a) - parseData(b))
+
+const labels=[]
+const valori=[]
+
+filtrati.forEach(d=>{
+
+const data=parseData(d)
+
+labels.push(data.toLocaleDateString("it-IT"))
+valori.push(d.Differenza)
+
+})
+
+// RIEPILOGO
+let primo = filtrati.length ? filtrati[0].Differenza : 0
+let ultimo = filtrati.length ? filtrati[filtrati.length - 1].Differenza : 0
+let diff = ultimo - primo
+
+document.getElementById("riepilogo").innerHTML =
+`Prima rilevazione: ${primo} &nbsp;&nbsp; | &nbsp;&nbsp;
+Ultima rilevazione: ${ultimo} &nbsp;&nbsp; | &nbsp;&nbsp;
+Differenza: ${diff}`
+
+if(grafico) grafico.destroy()
+
+grafico=new Chart(document.getElementById("grafico"),{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:"Differenza",
+data:valori,
+fill:false,
+tension:0.2
+}]
+}
+})
+
+}
+
+carica()
+
+document.getElementById("meseFiltro").addEventListener("change", render)
+
+</script>
+
+</body>
+</html>
 <style>
 body{font-family:Arial;margin:20px;background:#f7f7f7;}
 h1{text-align:center;}
