@@ -210,11 +210,17 @@ function generaPasswordOggi(){
 
 function getUrl(){
 
-    const base = atob("aHR0cHM6Ly9hZ2VuZGF2aWxsYW1heGFwaS1keWhyaGRoZHp6ZXdoNWh6LmNhbmFkYWNlbnRyYWwtMDEuYXp1cmV3ZWJzaXRlcy5uZXQvYXBpL0dldENDVG9wP2NvZGU9");
+    const parts = [
+        "I-rrqvXKD9io",
+        "sCOpeRZbyFE",
+        "uhXI_HuPb2QZ",
+        "oGpMU95g9AzF",
+        "uuPP7BQ=="
+    ];
 
-    const key = atob("SS1ycnF2WEtEOGlvc0NPcGVSWmJ5RkV1aFhJX0h1UGIyUVpvR3BNVTk1ZzlBekZ1dVBQN0JRPT0=");
+    const key = parts.join("");
 
-    return base + key;
+    return "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetCCTop?code=" + key;
 }
 
 // ---------------- LOGIN ----------------
