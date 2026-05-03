@@ -264,20 +264,6 @@ let saldoChart, pieChart, barChart;
 function caricaDati(){
 
     const url = getUrl();
-    console.log("CHIAMO API:", url);
-
-    fetch(url)
-    .then(r=>{
-        console.log("STATUS:", r.status);
-        return r.json();
-    })
-    .then(json=>{
-        console.log("DATI:", json);
-
-        if(!json || json.length === 0){
-            console.warn("⚠️ Nessun dato ricevuto");
-        }
-
 
         
 fetch(getUrl())
