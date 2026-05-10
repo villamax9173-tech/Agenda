@@ -23,9 +23,15 @@ margin:20px;
 }
 
 canvas{
-max-width:900px;
+width:100% !important;
+max-width:1400px;
+height:600px !important;
 margin:auto;
 display:block;
+background:white;
+padding:10px;
+border-radius:10px;
+box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 </style>
 </head>
@@ -115,9 +121,9 @@ let ultimo = filtrati.length ? filtrati[filtrati.length - 1].Differenza : 0
 let diff = ultimo - primo
 
 document.getElementById("riepilogo").innerHTML =
-`Prima rilevazione: ${primo} &nbsp;&nbsp; | &nbsp;&nbsp;
-Ultima rilevazione: ${ultimo} &nbsp;&nbsp; | &nbsp;&nbsp;
-Differenza: ${diff}`
+`Prima rilevazione: ${Math.round(primo)} &nbsp;&nbsp; | &nbsp;&nbsp;
+Ultima rilevazione: ${Math.round(ultimo)} &nbsp;&nbsp; | &nbsp;&nbsp;
+Differenza: ${Math.round(diff)}`
 
 if(grafico) grafico.destroy()
 
