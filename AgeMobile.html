@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+
+<title>Agenda Villamax</title>
+
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/locales/it.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<style>
+
+*{
+box-sizing:border-box;
+-webkit-tap-highlight-color:transparent;
+}
+
+body{
+margin:0;
+font-family:'Segoe UI',Roboto,Arial,sans-serif;
+background:#eef2f7;
+color:#202124;
+overflow-x:hidden;
+}
+
+/* HEADER */
+
+.topbar{
+position:sticky;
+top:0;
+z-index:1000;
+background:white;
+padding:14px 16px;
+box-shadow:0 2px 10px rgba(0,0,0,0.08);
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.topbar h2{
+margin:0;
+font-size:20px;
+font-weight:700;
+}
+
+/* FILTERS */
+
+#filters{
+display:flex;
+gap:8px;
+overflow-x:auto;
+padding:12px;
+background:white;
+position:sticky;
+top:58px;
+z-index:999;
+border-bottom:1px solid #e5e7eb;
+}
+
+#filters::-webkit-scrollbar{
+display:none;
+}
+
+.filter-btn{
+min-width:44px;
+height:44px;
+display:flex;
+align-items:center;
+justify-content:center;
+border-radius:14px;
+background:#f3f4f6;
+font-size:14px;
+font-weight:600;
+cursor:pointer;
+transition:0.2s;
+flex-shrink:0;
+user-select:none;
+}
+
+.filter-active{
+background:#1a73e8;
+color:white;
+}
+
+/* CALENDAR */
+
+#calendar{
+padding:10px;
+max-width:100%;
+}
+
+/* FULLCALENDAR */
+
+.fc{
+background:white;
+border-radius:20px;
+padding:10px;
+box-shadow:0 4px 20px rgba(0,0,0,0.08);
+}
+
+/* toolbar */
+
+.fc .fc-toolbar{
+display:flex;
+flex-direction:column;
+gap:12px;
+margin-bottom:15px !important;
+}
+
+.fc-toolbar-title{
+font-size:20px !important;
+font-weight:700;
+text-align:center;
+}
+
+/* buttons */
+
+.fc .fc-button{
+border:none !important;
+background:#1a73e8 !important;
+border-radius:12px !important;
+padding:10px 12px !important;
+font-size:13px !important;
+font-weight:600 !important;
+box-shadow:none !important;
+}
+
+.fc .fc-button:active{
+transform:scale(0.97);
+}
+
+/* header giorni */
+
+.fc-col-header-cell{
+background:#1a73e8 !important;
+padding:10px 0 !important;
+}
+
+.fc-col-header-cell-cushion{
+color:white !important;
+font-size:12px;
+font-weight:700;
+text-transform:uppercase;
+text-decoration:none !important;
+}
+
+/* weekend */
+
+.fc-day-sat{
+background:#f7fbff;
+}
+
+.fc-day-sun{
+background:#fff7f7;
+}
+
+/* day numbers */
+
+.fc-daygrid-day-number{
+font-size:13px;
+font-weight:600;
+padding:6px;
+text-decoration:none !important;
+color:#202124;
+}
+
+/* events */
+
+.fc-event{
+border:none !important;
+border-radius:10px !important;
+padding:3px 6px !important;
+font-size:11px !important;
+font-weight:600;
+overflow:hidden;
+box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.fc-event-title{
+white-space:nowrap;
+overflow:hidden;
+text-overflow:ellipsis;
+}
+
+.fc-daygrid-event-dot{
+display:none !important;
+}
+
+/* TODAY */
+
+.fc-day-today{
+background:#e8f0fe !important;
+}
+
+/* MODAL */
+
+.modal{
+display:none;
+position:fixed;
+z-index:5000;
+left:0;
+top:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.45);
+backdrop-filter:blur(3px);
+animation:fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn{
+from{opacity:0;}
+to{opacity:1;}
+}
+
+.modal-content{
+position:absolute;
+bottom:0;
+left:0;
+width:100%;
+background:white;
+border-radius:22px 22px 0 0;
+padding:20px;
+max-height:92vh;
+overflow:auto;
+animation:slideUp 0.2s ease;
+}
+
+@keyframes slideUp{
+from{
+transform:translateY(100%);
+}
+to{
+transform:translateY(0);
+}
+}
+
+.modal h3{
+margin-top:0;
+font-size:22px;
+}
+
+/* form */
+
+.modal input,
+.modal textarea,
+.modal select{
+width:100%;
+padding:14px;
+margin-bottom:14px;
+border:1px solid #d1d5db;
+border-radius:14px;
+font-size:16px;
+background:#f9fafb;
+outline:none;
+}
+
+.modal textarea{
+min-height:100px;
+resize:none;
+}
+
+/* time row */
+
+.time-row{
+display:flex;
+gap:10px;
+}
+
+/* buttons */
+
+.modal-buttons{
+display:flex;
+flex-direction:column;
+gap:10px;
+margin-top:10px;
+}
+
+.modal-buttons button{
+width:100%;
+padding:14px;
+font-size:15px;
+font-weight:700;
+border:none;
+border-radius:14px;
+cursor:pointer;
+}
+
+.btn-save{
+background:#1a73e8;
+color:white;
+}
+
+.btn-delete{
+background:#d93025;
+color:white;
+}
+
+.btn-cancel{
+background:#e5e7eb;
+}
+
+/* floating add */
+
+.fab{
+position:fixed;
+right:20px;
+bottom:20px;
+width:62px;
+height:62px;
+border-radius:50%;
+background:#1a73e8;
+color:white;
+font-size:34px;
+display:flex;
+align-items:center;
+justify-content:center;
+box-shadow:0 6px 20px rgba(0,0,0,0.25);
+z-index:4000;
+cursor:pointer;
+user-select:none;
+}
+
+/* DESKTOP */
+
+@media (min-width: 900px){
+
+body{
+padding-bottom:0;
+}
+
+#calendar{
+max-width:1400px;
+margin:20px auto;
+}
+
+.fc .fc-toolbar{
+flex-direction:row;
+}
+
+.modal-content{
+width:420px;
+left:50%;
+top:50%;
+bottom:auto;
+transform:translate(-50%,-50%);
+border-radius:20px;
+}
+
+.fab{
+display:none;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="topbar">
+<h2>Agenda</h2>
+</div>
+
+<div id="filters">
+<div class="filter-btn filter-active" data-type="ALL">Tutti</div>
+<div class="filter-btn" data-type="P">💰</div>
+<div class="filter-btn" data-type="S">🏥</div>
+<div class="filter-btn" data-type="M">📝</div>
+<div class="filter-btn" data-type="C">🎬</div>
+<div class="filter-btn" data-type="A">👥</div>
+<div class="filter-btn" data-type="L">💼</div>
+<div class="filter-btn" data-type="B">🎂</div>
+</div>
+
+<div id="calendar"></div>
+
+<div class="fab" id="fabAdd">+</div>
+
+<!-- MODAL -->
+
+<div id="eventModal" class="modal">
+
+<div class="modal-content">
+
+<h3>Evento</h3>
+
+<input id="evTitle" placeholder="Titolo">
+
+<select id="evTipo">
+<option value="M">📝 Memo</option>
+<option value="L">💼 Lavoro</option>
+<option selected value="P">💰 Pagare</option>
+<option value="A">👥 Amici</option>
+<option value="S">🏥 Salute</option>
+<option value="C">🎬 Cinema</option>
+<option value="B">🎂 Compleanno</option>
+</select>
+
+<div class="time-row">
+
+<select id="evOra"></select>
+
+<select id="evMin">
+<option value="0">00</option>
+<option value="15">15</option>
+<option value="30">30</option>
+<option value="45">45</option>
+</select>
+
+</div>
+
+<textarea id="evDesc" placeholder="Descrizione"></textarea>
+
+<div class="modal-buttons">
+<button class="btn-save" id="saveEvent">Salva Evento</button>
+<button class="btn-delete" id="deleteEvent">Elimina Evento</button>
+<button class="btn-cancel" id="closeModal">Chiudi</button>
+</div>
+
+</div>
+</div>
+
+<script>
+
+document.addEventListener('DOMContentLoaded',function(){
+
+const API_BASE="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api";
+const API_KEY="I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
+
+let currentId=null;
+let currentDate=new Date();
+let filter="ALL";
+
+const iconMap={
+P:"💰",
+S:"🏥",
+M:"📝",
+C:"🎬",
+A:"👥",
+L:"💼",
+B:"🎂"
+};
+
+/* ore */
+
+const oraSelect=document.getElementById("evOra");
+
+for(let i=0;i<24;i++){
+
+const option=document.createElement("option");
+
+option.value=i;
+option.text=(i<10?"0":"")+i;
+
+oraSelect.appendChild(option);
+
+}
+
+/* calendario */
+
+const calendar=new FullCalendar.Calendar(document.getElementById('calendar'),{
+
+initialView: window.innerWidth < 768
+? 'timeGridWeek'
+: 'dayGridMonth',
+
+locale:'it',
+
+firstDay:1,
+
+height:"auto",
+
+expandRows:true,
+
+stickyHeaderDates:true,
+
+handleWindowResize:true,
+
+eventDisplay:'block',
+
+headerToolbar:{
+left:'prev,next',
+center:'title',
+right:'today'
+},
+
+buttonText:{
+today:'Oggi'
+},
+
+events:loadEvents,
+
+dateClick:function(info){
+
+currentId=null;
+currentDate=info.date;
+
+openModal("", "P", "",0,0);
+
+},
+
+eventClick:function(info){
+
+currentId=info.event.extendedProps.id;
+currentDate=info.event.start;
+
+openModal(
+info.event.title.replace(/^[^\s]+\s/,''),
+info.event.extendedProps.tipo,
+info.event.extendedProps.desc,
+info.event.start.getHours(),
+info.event.start.getMinutes()
+);
+
+}
+
+});
+
+calendar.render();
+
+/* load events */
+
+async function loadEvents(fetchInfo,successCallback){
+
+try{
+
+const res=await axios.get(`${API_BASE}/GetEvents?code=${API_KEY}`);
+
+const events=res.data
+.filter(e=> filter==="ALL" || e.tipo===filter)
+.map(e=>{
+
+const d=e.data.toString();
+
+let startDate;
+
+if(e.tipo==="B" || (e.ora==0 && e.minuti==0)){
+
+startDate=new Date(
+d.substring(0,4),
+d.substring(4,6)-1,
+d.substring(6,8)
+);
+
+}else{
+
+startDate=new Date(
+d.substring(0,4),
+d.substring(4,6)-1,
+d.substring(6,8),
+e.ora||0,
+e.minuti||0
+);
+
+}
+
+let color="#4285F4";
+
+if(e.tipo==="P") color="#EA4335";
+if(e.tipo==="S") color="#34A853";
+if(e.tipo==="M") color="#8AB4F8";
+if(e.tipo==="C") color="#FDD663";
+if(e.tipo==="A") color="#137333";
+if(e.tipo==="L") color="#FB8C00";
+if(e.tipo==="B") color="#ff66c4";
+
+const icon=iconMap[e.tipo]||"";
+
+return{
+
+title:icon+" "+e.desc_breve,
+
+start:startDate,
+
+backgroundColor:color,
+
+borderColor:color,
+
+textColor:"#fff",
+
+extendedProps:{
+id:e.id,
+tipo:e.tipo,
+desc:e.descrizione
+}
+
+};
+
+});
+
+successCallback(events);
+
+}catch(err){
+
+console.error(err);
+
+}
+
+}
+
+/* modal */
+
+function openModal(title,tipo,desc,ora,minuti){
+
+document.getElementById("evTitle").value=title;
+document.getElementById("evTipo").value=tipo;
+document.getElementById("evDesc").value=desc;
+
+document.getElementById("evOra").value=ora;
+document.getElementById("evMin").value=minuti;
+
+document.getElementById("eventModal").style.display="block";
+
+}
+
+function closeModal(){
+
+document.getElementById("eventModal").style.display="none";
+
+}
+
+document.getElementById("closeModal").onclick=closeModal;
+
+document.getElementById("eventModal").onclick=function(e){
+
+if(e.target.id==="eventModal"){
+
+closeModal();
+
+}
+
+};
+
+/* FAB */
+
+document.getElementById("fabAdd").onclick=function(){
+
+currentId=null;
+currentDate=new Date();
+
+openModal("", "P", "",0,0);
+
+};
+
+/* save */
+
+document.getElementById("saveEvent").onclick=async function(){
+
+try{
+
+const titolo=document.getElementById("evTitle").value;
+const tipo=document.getElementById("evTipo").value;
+const desc=document.getElementById("evDesc").value;
+
+const ora=parseInt(document.getElementById("evOra").value);
+const minuti=parseInt(document.getElementById("evMin").value);
+
+await axios.post(`${API_BASE}/InsertEvent?code=${API_KEY}`,{
+
+data:formatDateToInt(currentDate),
+
+ora:ora,
+
+minuti:minuti,
+
+tipo:tipo,
+
+durata_ore:0,
+
+durata_minuti:0,
+
+desc_breve:titolo,
+
+descrizione:desc
+
+});
+
+calendar.refetchEvents();
+
+closeModal();
+
+}catch(err){
+
+alert("Errore salvataggio");
+
+console.error(err);
+
+}
+
+};
+
+/* delete */
+
+document.getElementById("deleteEvent").onclick=async function(){
+
+if(!currentId) return;
+
+if(!confirm("Eliminare evento?")) return;
+
+try{
+
+await axios.delete(`${API_BASE}/DeleteEvent?code=${API_KEY}`,{
+data:{id:currentId}
+});
+
+calendar.refetchEvents();
+
+closeModal();
+
+}catch(err){
+
+alert("Errore eliminazione");
+
+console.error(err);
+
+}
+
+};
+
+/* filters */
+
+document.querySelectorAll(".filter-btn").forEach(btn=>{
+
+btn.onclick=function(){
+
+document.querySelectorAll(".filter-btn")
+.forEach(b=>b.classList.remove("filter-active"));
+
+btn.classList.add("filter-active");
+
+filter=btn.dataset.type;
+
+calendar.refetchEvents();
+
+};
+
+});
+
+/* format date */
+
+function formatDateToInt(date){
+
+const y=date.getFullYear();
+
+const m=(date.getMonth()+1)
+.toString()
+.padStart(2,'0');
+
+const d=date.getDate()
+.toString()
+.padStart(2,'0');
+
+return parseInt(`${y}${m}${d}`);
+
+}
+
+});
+
+</script>
+
+</body>
+</html>
