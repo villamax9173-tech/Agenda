@@ -1,37 +1,119 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<link rel="stylesheet" href="menu.css">
 <meta charset="UTF-8">
-<title>Andamento Differenze</title>
-<!DOCTYPE html>
-<html lang="it">
-<head>
-<link rel="stylesheet" href="menu.css">
-<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Andamento Differenze</title>
 
+<link rel="stylesheet" href="menu.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{font-family:Arial;margin:20px;background:#f7f7f7;}
-h1{text-align:center;}
+body{
+    font-family:Arial,sans-serif;
+    margin:20px;
+    background:#f7f7f7;
+}
+
+h1{
+    text-align:center;
+    margin-bottom:20px;
+}
 
 .filtro{
-text-align:center;
-margin:20px;
+    text-align:center;
+    margin:20px 0;
+}
+
+.filtro input,
+.filtro button{
+    padding:8px 12px;
+    font-size:15px;
+}
+
+.filtro button{
+    cursor:pointer;
+}
+
+.riepilogo{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    flex-wrap:wrap;
+    margin-top:15px;
+}
+
+.riepilogo-box{
+    background:white;
+    padding:12px 18px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    text-align:center;
+    min-width:180px;
+}
+
+.riepilogo-titolo{
+    font-size:14px;
+    color:#666;
+    margin-bottom:5px;
+}
+
+.riepilogo-valore{
+    font-size:24px;
+    font-weight:bold;
+}
+
+.chart-container{
+    width:100%;
+    max-width:1400px;
+    margin:auto;
+    background:white;
+    padding:15px;
+    border-radius:10px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.1);
 }
 
 canvas{
-width:100% !important;
-max-width:1400px;
-height:600px !important;
-margin:auto;
-display:block;
-background:white;
-padding:10px;
-border-radius:10px;
-box-shadow:0 2px 6px rgba(0,0,0,0.1);
+    width:100% !important;
+    height:600px !important;
+}
+
+.loading{
+    text-align:center;
+    margin-top:20px;
+    font-weight:bold;
+}
+
+.errore{
+    text-align:center;
+    margin-top:20px;
+    color:red;
+    font-weight:bold;
+}
+
+@media(max-width:768px){
+
+    body{
+        margin:10px;
+    }
+
+    h1{
+        font-size:22px;
+    }
+
+    .riepilogo-box{
+        width:100%;
+        max-width:300px;
+    }
+
+    .riepilogo-valore{
+        font-size:20px;
+    }
+
+    canvas{
+        height:350px !important;
+    }
 }
 </style>
 </head>
@@ -44,215 +126,202 @@ box-shadow:0 2px 6px rgba(0,0,0,0.1);
 fetch("menu.html")
 .then(res => res.text())
 .then(data => {
-document.getElementById("menu-container").innerHTML = data;
-});
+    document.getElementById("menu-container").innerHTML = data;
+})
+.catch(err => console.error("Errore caricamento menu:", err));
 </script>
 
 <h1>Andamento Differenza</h1>
 
 <div class="filtro">
-<input type="month" id="meseFiltro">
-<button onclick="render()">Filtra</button>
-
-<div id="riepilogo" style="font-size:18px; font-weight:bold; margin-top:10px;"></div>
+    <input type="month" id="meseFiltro">
+    <button onclick="render()">Filtra</button>
 </div>
 
-<canvas id="grafico"></canvas>
+<div id="riepilogo" class="riepilogo"></div>
+
+<div id="stato" class="loading">
+    Caricamento dati...
+</div>
+
+<div class="chart-container">
+    <canvas id="grafico"></canvas>
+</div>
 
 <script>
 
-const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetDifferenze?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
+const API = "https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetDifferenze?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ==";
 
-let dati=[]
-let grafico=null
+let dati = [];
+let grafico = null;
+
+function parseData(record){
+
+    if(!record.Data) return new Date();
+
+    const parti = record.Data.split("-");
+
+    if(parti.length !== 3){
+        return new Date(record.Data);
+    }
+
+    return new Date(
+        parseInt(parti[0]),
+        parseInt(parti[1]) - 1,
+        parseInt(parti[2])
+    );
+}
 
 async function carica(){
 
-const res=await fetch(API)
-dati=await res.json()
+    try{
 
-render()
+        document.getElementById("stato").innerHTML = "Caricamento dati...";
 
-}
+        const res = await fetch(API);
 
-// parsing data stabile
-function parseData(d){
-const [y,m,day] = d.Data.split("-")
-return new Date(y, m-1, day)
+        if(!res.ok){
+            throw new Error("Errore HTTP " + res.status);
+        }
+
+        dati = await res.json();
+
+        document.getElementById("stato").style.display = "none";
+
+        render();
+
+    }
+    catch(err){
+
+        console.error(err);
+
+        document.getElementById("stato").className = "errore";
+        document.getElementById("stato").innerHTML =
+            "Errore durante il caricamento dei dati";
+    }
 }
 
 function render(){
 
-const meseSel=document.getElementById("meseFiltro").value
+    const meseSel = document.getElementById("meseFiltro").value;
 
-let filtrati=dati
+    let filtrati = [...dati];
 
-if(meseSel){
+    if(meseSel){
 
-filtrati=dati.filter(d=>{
+        filtrati = filtrati.filter(d => {
 
-const data=parseData(d)
-const ym=data.getFullYear()+"-"+String(data.getMonth()+1).padStart(2,"0")
+            const data = parseData(d);
 
-return ym===meseSel
+            const ym =
+                data.getFullYear() +
+                "-" +
+                String(data.getMonth()+1).padStart(2,"0");
 
-})
+            return ym === meseSel;
 
+        });
+    }
+
+    filtrati.sort((a,b) => parseData(a) - parseData(b));
+
+    const labels = [];
+    const valori = [];
+
+    filtrati.forEach(d => {
+
+        const data = parseData(d);
+
+        labels.push(
+            data.toLocaleDateString("it-IT")
+        );
+
+        valori.push(Number(d.Differenza) || 0);
+    });
+
+    const primo =
+        filtrati.length > 0
+        ? Number(filtrati[0].Differenza) || 0
+        : 0;
+
+    const ultimo =
+        filtrati.length > 0
+        ? Number(filtrati[filtrati.length - 1].Differenza) || 0
+        : 0;
+
+    const diff = ultimo - primo;
+
+    document.getElementById("riepilogo").innerHTML = `
+        <div class="riepilogo-box">
+            <div class="riepilogo-titolo">
+                Prima rilevazione
+            </div>
+            <div class="riepilogo-valore">
+                ${Math.round(primo)}
+            </div>
+        </div>
+
+        <div class="riepilogo-box">
+            <div class="riepilogo-titolo">
+                Ultima rilevazione
+            </div>
+            <div class="riepilogo-valore">
+                ${Math.round(ultimo)}
+            </div>
+        </div>
+
+        <div class="riepilogo-box">
+            <div class="riepilogo-titolo">
+                Differenza
+            </div>
+            <div class="riepilogo-valore">
+                ${Math.round(diff)}
+            </div>
+        </div>
+    `;
+
+    if(grafico){
+        grafico.destroy();
+    }
+
+    grafico = new Chart(
+        document.getElementById("grafico"),
+        {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Differenza",
+                    data: valori,
+                    fill: false,
+                    tension: 0.2,
+                    borderWidth: 3,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins:{
+                    legend:{
+                        display:true
+                    }
+                },
+                scales:{
+                    y:{
+                        beginAtZero:false
+                    }
+                }
+            }
+        }
+    );
 }
 
-// ordina per data
-filtrati.sort((a,b)=> parseData(a) - parseData(b))
+document
+.getElementById("meseFiltro")
+.addEventListener("change", render);
 
-const labels=[]
-const valori=[]
-
-filtrati.forEach(d=>{
-
-const data=parseData(d)
-
-labels.push(data.toLocaleDateString("it-IT"))
-valori.push(d.Differenza)
-
-})
-
-// RIEPILOGO
-let primo = filtrati.length ? filtrati[0].Differenza : 0
-let ultimo = filtrati.length ? filtrati[filtrati.length - 1].Differenza : 0
-let diff = ultimo - primo
-
-document.getElementById("riepilogo").innerHTML =
-`Prima rilevazione: ${Math.round(primo)} &nbsp;&nbsp; | &nbsp;&nbsp;
-Ultima rilevazione: ${Math.round(ultimo)} &nbsp;&nbsp; | &nbsp;&nbsp;
-Differenza: ${Math.round(diff)}`
-
-if(grafico) grafico.destroy()
-
-grafico=new Chart(document.getElementById("grafico"),{
-type:"line",
-data:{
-labels:labels,
-datasets:[{
-label:"Differenza",
-data:valori,
-fill:false,
-tension:0.2
-}]
-}
-})
-
-}
-
-carica()
-
-document.getElementById("meseFiltro").addEventListener("change", render)
-
-</script>
-
-</body>
-</html>
-<style>
-body{font-family:Arial;margin:20px;background:#f7f7f7;}
-h1{text-align:center;}
-
-.filtro{
-text-align:center;
-margin:20px;
-}
-
-canvas{
-max-width:900px;
-margin:auto;
-display:block;
-}
-</style>
-</head>
-
-<body>
-
-<div id="menu-container"></div>
-
-<script>
-fetch("menu.html")
-.then(res => res.text())
-.then(data => {
-document.getElementById("menu-container").innerHTML = data;
-});
-</script>
-
-<h1>Andamento Differenza</h1>
-
-<div class="filtro">
-<input type="month" id="meseFiltro">
-<button onclick="carica()">Filtra</button>
-</div>
-
-<canvas id="grafico"></canvas>
-
-<script>
-
-const API="https://agendavillamaxapi-dyhrhdhzdzewh5hz.canadacentral-01.azurewebsites.net/api/GetDifferenze?code=I-rrqvXKD9iosCOpeRZbyFEuhXI_HuPb2QZoGpMU95g9AzFuuPP7BQ=="
-
-let dati=[]
-let grafico=null
-
-async function carica(){
-
-const res=await fetch(API)
-dati=await res.json()
-
-render()
-
-}
-
-function render(){
-
-const meseSel=document.getElementById("meseFiltro").value
-
-let filtrati=dati
-
-if(meseSel){
-
-filtrati=dati.filter(d=>{
-
-const data=new Date(d.Data)
-const ym=data.getFullYear()+"-"+String(data.getMonth()+1).padStart(2,"0")
-
-return ym===meseSel
-
-})
-
-}
-
-const labels=[]
-const valori=[]
-
-filtrati.forEach(d=>{
-
-const data=new Date(d.Data)
-
-labels.push(data.toLocaleDateString("it-IT"))
-valori.push(d.Differenza)
-
-})
-
-if(grafico) grafico.destroy()
-
-grafico=new Chart(document.getElementById("grafico"),{
-type:"line",
-data:{
-labels:labels,
-datasets:[{
-label:"Differenza",
-data:valori,
-fill:false,
-tension:0.2
-}]
-}
-})
-
-}
-
-carica()
+carica();
 
 </script>
 
